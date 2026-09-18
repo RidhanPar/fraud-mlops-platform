@@ -62,3 +62,15 @@ def score_drift(ref_scores: np.ndarray, cur_scores: np.ndarray, threshold: float
         "cur_alert_rate": float((cur_scores >= threshold).mean()),
         "cur_mean_score": float(cur_scores.mean()),
     }
+
+
+def mode_share(values: np.ndarray) -> float:
+    """Share of rows holding the single most common exact value.
+
+    Continuous features almost never repeat exactly, so a high share means a
+    default or fill value is being sent: an upstream data fault, not drift.
+    """
+    if len(values) == 0:
+        return float("nan")
+    _, counts = np.unique(values, return_counts=True)
+    return float(counts.max() / len(values))

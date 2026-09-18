@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from fraud_mlops.api import main
 from fraud_mlops.api.schemas import MAX_BATCH
+from fraud_mlops.audit.hashing import file_sha256
 from fraud_mlops.config import load_params
 from fraud_mlops.features import RAW_COLUMNS
 from fraud_mlops.train import build_pipeline
@@ -20,7 +21,8 @@ def client(tmp_path_factory):
     model = build_pipeline(cfg, 42).fit(df[RAW_COLUMNS], df["Class"])
     with open(out / "model.pkl", "wb") as f:
         cloudpickle.dump(model, f)
-    (out / "metadata.json").write_text(json.dumps({"model_version": "7", "threshold": 0.5}))
+    (out / "metadata.json").write_text(json.dumps(
+        {"model_version": "7", "threshold": 0.5, "model_sha256": file_sha256(out / "model.pkl")}))
 
     main.MODEL_DIR = out
     main.DATABASE_URL = f"sqlite:///{(out / 'log.db').as_posix()}"
@@ -125,3 +127,37 @@ def test_metrics_exposed(client, tx):
     for name in ("fraud_http_request_duration_seconds_bucket", "fraud_score_bucket",
                  "fraud_rows_scored_total", 'fraud_model_info{model_version="7"}'):
         assert name in body
+
+
+def test_audit_lookup_returns_decision_with_integrity(client, tx):
+    tx["transaction_id"] = "audit-1"
+    client.post("/predict", json=tx, headers={"X-Client-ID": "checkout-svc"})
+    d = client.get("/audit/transactions/audit-1").json()["decisions"][0]
+    assert d["caller"] == "checkout-svc"
+    assert d["model_version"] == "7" and d["integrity_ok"] is True
+    assert d["input"]["Amount"] == tx["Amount"]
+    assert client.get("/audit/transactions/nope").status_code == 404
+
+
+def test_explain_accounts_for_the_whole_score_and_is_audited(client, tx):
+    tx["transaction_id"] = "explain-1"
+    score = client.post("/predict", json=tx).json()["fraud_probability"]
+    r = client.get("/explain/explain-1?top=5", headers={"X-Client-ID": "analyst-42"})
+    assert r.status_code == 200
+    e = r.json()["explanation"]
+    assert len(e["top_contributions"]) == 5
+    assert e["score_from_contributions"] == pytest.approx(score, rel=1e-4)
+    asked = client.get("/audit/transactions/explain-1").json()["decisions"][0]["explanations_requested"]
+    assert asked[0]["requested_by"] == "analyst-42"
+
+
+def test_explain_refuses_decisions_from_another_model(client, tx, monkeypatch):
+    tx["transaction_id"] = "old-model-1"
+    client.post("/predict", json=tx)
+    monkeypatch.setattr(main.state["model"], "sha256", "f" * 64)
+    r = client.get("/explain/old-model-1")
+    assert r.status_code == 409 and "explain_cli" in r.json()["detail"]
+
+
+def test_bad_client_id_rejected(client, tx):
+    assert client.post("/predict", json=tx, headers={"X-Client-ID": "bad id!"}).status_code == 400

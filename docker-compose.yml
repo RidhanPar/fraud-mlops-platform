@@ -2,22 +2,38 @@
 #   python -m fraud_mlops.export_model && docker compose up -d --build
 # Grafana http://localhost:3000   Prometheus http://localhost:9090   Alertmanager http://localhost:9093
 
+# Local demo credentials only. A real deployment reads these from a secrets manager.
 x-app-env: &app-env
-  DATABASE_URL: postgresql+psycopg://fraud:fraud@postgres:5432/fraud
+  # Services connect as fraud_app: INSERT and SELECT only, no UPDATE, DELETE or DDL.
+  DATABASE_URL: postgresql+psycopg://fraud_app:app_local_only@postgres:5432/fraud
   MODEL_DIR: /app/serving_model
 
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: fraud
+      POSTGRES_USER: fraud          # admin: owns the schema, used only by the migration job
       POSTGRES_PASSWORD: fraud
       POSTGRES_DB: fraud
     volumes: [pgdata:/var/lib/postgresql/data]
+    # Loopback only, for audit tooling (verify, explain_cli) run from the host.
+    ports: ["127.0.0.1:5434:5432"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fraud"]
       interval: 5s
       retries: 20
+
+  migrate:
+    image: fraud-detector:v1
+    command: ["python", "-m", "fraud_mlops.audit.migrate"]
+    environment:
+      DATABASE_ADMIN_URL: postgresql+psycopg://fraud:fraud@postgres:5432/fraud
+      APP_DB_PASSWORD: app_local_only
+    healthcheck:
+      disable: true
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
 
   api:
     build: .
@@ -28,7 +44,18 @@ services:
     ports: ["8000:8000"]
     cpus: 2
     depends_on:
-      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+
+  auditor:
+    image: fraud-detector:v1
+    command: ["sh", "-c", "unset PROMETHEUS_MULTIPROC_DIR && exec python -m fraud_mlops.audit.seal --loop"]
+    environment:
+      <<: *app-env
+      SEAL_INTERVAL_SECONDS: "30"
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate: {condition: service_completed_successfully}
 
   monitor:
     image: fraud-detector:v1

@@ -1,8 +1,13 @@
 """Replay real holdout traffic through the running stack and inject an incident.
 
-Incident: the upstream feature service fails and fills V14 with 0. Every value
-is still a valid number, so request validation passes. V14 is the model's most
-important feature, so the model quietly stops catching fraud.
+Scenarios:
+  v14_zero  the upstream feature service fails and fills V14 with 0. Every value
+            is still a valid number, so request validation passes. V14 is the
+            model's most important feature, so the model stops catching fraud.
+            Right response: fix the data, do not retrain.
+  evasion   fraudsters adapt: fraudulent transactions move 70% of the way towards
+            the average legitimate transaction. Inputs look normal, only labels
+            reveal it. Right response: retrain.
 
 Phases: baseline -> incident -> recovery. Ground truth labels are posted after
 a delay, the way chargebacks arrive after the transaction.
@@ -35,6 +40,7 @@ def now_iso() -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--scenario", choices=["v14_zero", "evasion"], default="v14_zero")
     ap.add_argument("--url", default="http://127.0.0.1:8000")
     ap.add_argument("--baseline", type=float, default=180)
     ap.add_argument("--incident", type=float, default=300)
@@ -42,17 +48,24 @@ def main() -> None:
     ap.add_argument("--rows-per-sec", type=float, default=250)
     ap.add_argument("--batch", type=int, default=50)
     ap.add_argument("--label-lag", type=float, default=45, help="seconds before labels arrive")
-    ap.add_argument("--out", default=str(ROOT / "docs/drift_event/timeline.json"))
+    ap.add_argument("--out", default=None, help="default docs/drift_event/timeline[_<scenario>].json")
     args = ap.parse_args()
 
     p = load_params()
-    holdout = data.time_split(data.load(ROOT / p["data"]["path"]), p["data"]["train_frac"], p["data"]["valid_frac"]).holdout
+    splits = data.time_split(data.load(ROOT / p["data"]["path"]), p["data"]["train_frac"], p["data"]["valid_frac"])
+    holdout = splits.holdout
+    pca = [RAW_COLUMNS.index(f"V{i}") for i in range(1, 29)]
+    legit_mean = splits.train.loc[splits.train["Class"] == 0, RAW_COLUMNS].mean().to_numpy()
     rng = np.random.default_rng(7)
     X = holdout[RAW_COLUMNS].to_numpy()
     y = holdout["Class"].to_numpy()
 
     phases = [("baseline", args.baseline), ("incident", args.incident), ("recovery", args.recovery)]
-    timeline = {"incident": "V14 zero filled by upstream feature service", "phases": []}
+    descriptions = {
+        "v14_zero": "V14 zero filled by upstream feature service",
+        "evasion": "fraud transactions shifted 70% towards the legitimate mean (fraudster adaptation)",
+    }
+    timeline = {"scenario": args.scenario, "incident": descriptions[args.scenario], "phases": []}
     pending: deque = deque()  # (due_time, [(tx_id, label)])
     tick = args.batch / args.rows_per_sec
     run = datetime.now().strftime("%H%M%S")
@@ -73,8 +86,11 @@ def main() -> None:
                 cursor += args.batch
 
                 rows = X[idx].copy()
-                if name == "incident":
+                if name == "incident" and args.scenario == "v14_zero":
                     rows[:, RAW_COLUMNS.index("V14")] = 0.0
+                elif name == "incident" and args.scenario == "evasion":
+                    fraud = y[idx] == 1
+                    rows[np.ix_(fraud, pca)] = 0.3 * rows[np.ix_(fraud, pca)] + 0.7 * legit_mean[pca]
                 ids = [f"sim-{run}-{sent + i}" for i in range(len(idx))]
                 txs = [dict(zip(RAW_COLUMNS, map(float, r)), transaction_id=t) for r, t in zip(rows, ids)]
                 # Most traffic is batched; a slice goes to /predict to keep its latency series live.
@@ -94,9 +110,11 @@ def main() -> None:
             timeline["phases"][-1]["end"] = now_iso()
 
     timeline["rows_sent"] = sent
-    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps(timeline, indent=2), encoding="utf-8")
-    print(f"done, {sent} transactions sent, timeline in {args.out}")
+    out = Path(args.out or ROOT / "docs/drift_event" / (
+        "timeline.json" if args.scenario == "v14_zero" else f"timeline_{args.scenario}.json"))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(timeline, indent=2), encoding="utf-8")
+    print(f"done, {sent} transactions sent, timeline in {out}")
 
 
 if __name__ == "__main__":

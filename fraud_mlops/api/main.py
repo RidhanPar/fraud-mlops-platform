@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from time import perf_counter
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -29,6 +30,8 @@ from fraud_mlops.api.schemas import (
     Transaction,
 )
 from fraud_mlops.api.store import PredictionStore
+from fraud_mlops.audit.hashing import record_hash
+from fraud_mlops.explain import explain
 from fraud_mlops.features import RAW_COLUMNS
 
 log = logging.getLogger("fraud_api")
@@ -43,7 +46,10 @@ state: dict = {}
 async def lifespan(app: FastAPI):
     model = FraudModel(MODEL_DIR)
     state["model"] = model
-    state["store"] = PredictionStore(DATABASE_URL) if DATABASE_URL else None
+    store = PredictionStore(DATABASE_URL) if DATABASE_URL else None
+    if store is not None and store.engine.dialect.name == "sqlite":
+        store.create_schema()  # tests; in Postgres the migration job owns the schema
+    state["store"] = store
     metrics.MODEL_INFO.labels(model.version).set(1)
     yield
     state.clear()
@@ -93,7 +99,27 @@ def _model() -> FraudModel:
     return model
 
 
-def _score(txs: list, response: Response) -> tuple[str, FraudModel, np.ndarray]:
+_CALLER = re.compile(r"[A-Za-z0-9._:-]{1,64}")
+
+
+def _caller(value: str | None) -> str:
+    """Who asked. Real deployments take this from the authenticated identity
+    (mTLS or a gateway token); here it is a header, recorded as given."""
+    if value is None:
+        return "unidentified"
+    if not _CALLER.fullmatch(value):
+        raise HTTPException(status_code=400, detail="X-Client-ID must be 1 to 64 of A-Z a-z 0-9 . _ : -")
+    return value
+
+
+def _store() -> PredictionStore:
+    store = state.get("store")
+    if store is None:
+        raise HTTPException(status_code=503, detail="prediction log not configured")
+    return store
+
+
+def _score(txs: list, response: Response, caller: str) -> tuple[str, FraudModel, np.ndarray]:
     """Score, log every prediction, record metrics. Shared by single and batch."""
     model = _model()
     request_id = str(uuid.uuid4())
@@ -104,7 +130,7 @@ def _score(txs: list, response: Response) -> tuple[str, FraudModel, np.ndarray]:
     if store is not None:
         try:
             store.record_predictions(
-                request_id, model.version, model.threshold, rows,
+                request_id, caller, model.version, model.sha256, model.threshold, rows,
                 [t.transaction_id for t in txs], probs,
             )
         except Exception:
@@ -151,8 +177,12 @@ def prometheus_metrics() -> Response:
 # Plain `def` handlers run in FastAPI's thread pool, so a CPU bound predict
 # never blocks the event loop that accepts new connections.
 @app.post("/predict", response_model=PredictionResponse)
-def predict(tx: Transaction, response: Response) -> PredictionResponse:  # type: ignore[valid-type]
-    request_id, model, probs = _score([tx], response)
+def predict(
+    tx: Transaction,  # type: ignore[valid-type]
+    response: Response,
+    x_client_id: str | None = Header(default=None),
+) -> PredictionResponse:
+    request_id, model, probs = _score([tx], response, _caller(x_client_id))
     prob = float(probs[0])
     return PredictionResponse(
         request_id=request_id,
@@ -165,8 +195,10 @@ def predict(tx: Transaction, response: Response) -> PredictionResponse:  # type:
 
 
 @app.post("/predict/batch", response_model=BatchResponse)
-def predict_batch(req: BatchRequest, response: Response) -> BatchResponse:
-    request_id, model, probs = _score(req.transactions, response)
+def predict_batch(
+    req: BatchRequest, response: Response, x_client_id: str | None = Header(default=None)
+) -> BatchResponse:
+    request_id, model, probs = _score(req.transactions, response, _caller(x_client_id))
     return BatchResponse(
         request_id=request_id,
         model_version=model.version,
@@ -190,8 +222,71 @@ def feedback(req: FeedbackRequest) -> dict[str, int]:
     Joined to logged predictions by transaction_id to measure real recall and
     precision, which is the only way to see performance decay.
     """
-    store: PredictionStore | None = state.get("store")
-    if store is None:
-        raise HTTPException(status_code=503, detail="label store not configured")
-    store.record_labels([(item.transaction_id, item.is_fraud) for item in req.labels])
+    _store().record_labels([(item.transaction_id, item.is_fraud) for item in req.labels])
     return {"accepted": len(req.labels)}
+
+
+def _public(rec: dict) -> dict:
+    return {
+        "prediction_id": rec["id"],
+        "request_id": rec["request_id"],
+        "decided_at": rec["created_at"].isoformat(),
+        "caller": rec["caller"],
+        "model_version": rec["model_version"],
+        "model_sha256": rec["model_sha256"],
+        "score": rec["score"],
+        "threshold": rec["threshold"],
+        "decision": "fraud" if rec["is_fraud"] else "legitimate",
+        "input": rec["features"],
+        "record_hash": rec["record_hash"],
+        "integrity_ok": record_hash(rec) == rec["record_hash"],
+    }
+
+
+@app.get("/audit/transactions/{transaction_id}")
+def audit_transaction(transaction_id: str) -> dict:
+    """Every decision ever made for a transaction, with inputs and an integrity check."""
+    records = _store().predictions_for_transaction(transaction_id)
+    if not records:
+        raise HTTPException(status_code=404, detail="no decision logged for this transaction")
+    out = []
+    for rec in records:
+        item = _public(rec)
+        item["explanations_requested"] = [
+            {"requested_at": e["requested_at"].isoformat(), "requested_by": e["requested_by"]}
+            for e in _store().explanations_for_prediction(rec["id"])
+        ]
+        out.append(item)
+    return {"transaction_id": transaction_id, "decisions": out}
+
+
+@app.get("/explain/{transaction_id}")
+def explain_decision(
+    transaction_id: str, top: int = 10, x_client_id: str | None = Header(default=None)
+) -> dict:
+    """Justify a logged decision: exact per feature contributions to the score.
+
+    Explains the logged input with the logged model, never a fresh request, so
+    the answer is about the decision that was actually made. The request is
+    itself recorded, so the audit trail shows who asked for justification and when.
+    """
+    if not 1 <= top <= 31:
+        raise HTTPException(status_code=422, detail="top must be between 1 and 31")
+    caller = _caller(x_client_id)
+    store, model = _store(), _model()
+    records = store.predictions_for_transaction(transaction_id)
+    if not records:
+        raise HTTPException(status_code=404, detail="no decision logged for this transaction")
+    rec = records[-1]
+    if record_hash(rec) != rec["record_hash"]:
+        raise HTTPException(status_code=409, detail="logged decision fails its integrity check")
+    if rec["model_sha256"] != model.sha256:
+        raise HTTPException(
+            status_code=409,
+            detail=(f"decided by model v{rec['model_version']}, this service runs v{model.version}. "
+                    "Explain it offline: python -m fraud_mlops.audit.explain_cli "
+                    f"--transaction-id {transaction_id}"),
+        )
+    result = explain(model.pipeline, rec["features"], top=top)
+    store.record_explanation(rec["id"], caller, model.version, result)
+    return _public(rec) | {"explanation": result}

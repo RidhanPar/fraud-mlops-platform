@@ -1,0 +1,25 @@
+{
+  "evaluated_at": "2026-09-18T11:42:45+00:00",
+  "signals": {
+    "window": "2m",
+    "stuck_features": [],
+    "reject_rate": null,
+    "recall_max": 0.4642857142857143,
+    "labelled_frauds_min": 25.0,
+    "drifting_features": [],
+    "score_psi_min": 0.00731835516392452,
+    "flag_rate_ratio": 0.25396825396825395,
+    "model_age_days": 0.21742109953805253
+  },
+  "decision": {
+    "action": "RETRAIN_NOW",
+    "reasons": [
+      "recall on labelled traffic stayed below 0.5 for 2m (best 0.46) with no data fault detected"
+    ],
+    "next_steps": [
+      "Build a training set including matured labels from the recent window.",
+      "Run the training pipeline; the promotion gate still decides (Phase 1).",
+      "Shadow the candidate on live traffic before switching the champion alias."
+    ]
+  }
+}

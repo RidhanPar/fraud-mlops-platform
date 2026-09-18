@@ -1,0 +1,22 @@
+{
+  "scenario": "v14_zero",
+  "incident": "V14 zero filled by upstream feature service",
+  "phases": [
+    {
+      "phase": "baseline",
+      "start": "2026-09-18T11:28:16.019205+00:00",
+      "end": "2026-09-18T11:30:46.089120+00:00"
+    },
+    {
+      "phase": "incident",
+      "start": "2026-09-18T11:30:46.089120+00:00",
+      "end": "2026-09-18T11:34:46.126090+00:00"
+    },
+    {
+      "phase": "recovery",
+      "start": "2026-09-18T11:34:46.126090+00:00",
+      "end": "2026-09-18T11:36:16.222684+00:00"
+    }
+  ],
+  "rows_sent": 119500
+}

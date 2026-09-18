@@ -70,6 +70,17 @@ groups:
         annotations:
           summary: "Input drift on {{ $labels.feature }}: PSI {{ $value | printf \"%.2f\" }} above calibrated threshold"
 
+      - alert: FeatureStuckValue
+        # One exact value in most of the window, for a feature that almost never repeats
+        # in training. A default or fill value is being sent upstream: fix data, do not retrain.
+        expr: |
+          fraud_feature_mode_share > 0.5
+            and on(feature) fraud_feature_reference_mode_share < 0.1
+        for: 30s
+        labels: {severity: critical}
+        annotations:
+          summary: "{{ $labels.feature }} has one repeated value in {{ $value | humanizePercentage }} of traffic: likely upstream fault"
+
       - alert: PredictionDrift
         # Normal score PSI on unseen days is ~0.01 to 0.02.
         expr: fraud_score_psi > 0.1

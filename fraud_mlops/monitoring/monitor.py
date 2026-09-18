@@ -25,12 +25,14 @@ from prometheus_client import Counter, Gauge, start_http_server
 from sklearn.metrics import average_precision_score
 
 from fraud_mlops.api.store import PredictionStore
-from fraud_mlops.monitoring.drift import MONITORED_FEATURES, feature_drift, score_drift
+from fraud_mlops.monitoring.drift import MONITORED_FEATURES, feature_drift, mode_share, score_drift
 
 log = logging.getLogger("drift_monitor")
 
 FEATURE_PSI = Gauge("fraud_feature_psi", "PSI of live window vs training reference", ["feature"])
 FEATURE_PSI_THRESHOLD = Gauge("fraud_feature_psi_threshold", "Calibrated PSI alert threshold", ["feature"])
+MODE_SHARE = Gauge("fraud_feature_mode_share", "Share of the window holding one identical value", ["feature"])
+REF_MODE_SHARE = Gauge("fraud_feature_reference_mode_share", "Same share in the training reference", ["feature"])
 FEATURES_DRIFTING = Gauge("fraud_features_drifting", "Features whose PSI is above their threshold")
 SCORE_PSI = Gauge("fraud_score_psi", "PSI of the live score distribution vs reference")
 WINDOW_ROWS = Gauge("fraud_drift_window_rows", "Rows in the drift window")
@@ -87,11 +89,20 @@ def run_cycle(
             FEATURE_PSI.labels(row.feature).set(row.psi)
             FEATURE_PSI_THRESHOLD.labels(row.feature).set(row.threshold)
         FEATURES_DRIFTING.set(int(fd["drifting"].sum()))
+        stuck = []
+        for f in MONITORED_FEATURES:
+            share = mode_share(window[f].to_numpy())
+            ref_share = mode_share(reference[f].to_numpy())
+            MODE_SHARE.labels(f).set(share)
+            REF_MODE_SHARE.labels(f).set(ref_share)
+            if share > 0.5 and ref_share < 0.1:
+                stuck.append(f)
 
         sd = score_drift(reference["score"].to_numpy(), window["score"].to_numpy(), threshold)
         SCORE_PSI.set(sd["score_psi"])
         report.update(
             window_rows=len(window),
+            stuck_features=stuck,
             flag_rate=float(live["is_fraud"].mean()),
             score_psi=sd["score_psi"],
             drifting=fd.loc[fd["drifting"], ["feature", "psi", "threshold", "ref_mean", "cur_mean"]]
@@ -104,6 +115,7 @@ def run_cycle(
             g.set(np.nan)
         for f in MONITORED_FEATURES:
             FEATURE_PSI.labels(f).set(np.nan)
+            MODE_SHARE.labels(f).set(np.nan)
         WINDOW_ROWS.set(len(live))
         FLAG_RATE_ROWS.set(len(live))
 

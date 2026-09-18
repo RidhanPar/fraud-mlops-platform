@@ -1,0 +1,75 @@
+{
+  "target": "http://api:8000",
+  "duration_s_per_scenario": 15.0,
+  "note": "Phase 4: service --cpus 2, 2 workers, Postgres prediction log as app role WITH per row SHA-256 record hash, append only triggers, auditor sealing concurrently. generator: separate container, --cpus 4, 4 processes.",
+  "generator_processes": 4,
+  "client_host": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+  "results": {
+    "single c=1": {
+      "requests": 1623,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 108.16163170901146,
+      "rows_per_s": 108.16163170901146,
+      "p50_ms": 9.07663999896613,
+      "p95_ms": 10.603241001081186,
+      "p99_ms": 13.46402358227351,
+      "max_ms": 63.58319699938875
+    },
+    "single c=8": {
+      "requests": 3319,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 220.92983102226825,
+      "rows_per_s": 220.92983102226825,
+      "p50_ms": 34.711719999904744,
+      "p95_ms": 60.39390690020808,
+      "p99_ms": 90.44581542213572,
+      "max_ms": 172.01152999768965
+    },
+    "single c=32": {
+      "requests": 2568,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 170.11962960414215,
+      "rows_per_s": 170.11962960414215,
+      "p50_ms": 184.76696500147227,
+      "p95_ms": 283.62692424980196,
+      "p99_ms": 325.38068988964363,
+      "max_ms": 395.75697499822127
+    },
+    "single c=64": {
+      "requests": 2767,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 182.48995816591096,
+      "rows_per_s": 182.48995816591096,
+      "p50_ms": 341.34810300020035,
+      "p95_ms": 480.9249470999928,
+      "p99_ms": 564.0944265586593,
+      "max_ms": 807.0301600018865
+    },
+    "batch100 c=4": {
+      "requests": 987,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 65.57910931338185,
+      "rows_per_s": 6557.910931338184,
+      "p50_ms": 33.412354001484346,
+      "p95_ms": 115.96065790035931,
+      "p99_ms": 145.5428050008777,
+      "max_ms": 155.3910270013148
+    },
+    "batch1000 c=2": {
+      "requests": 76,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 5.058823447234282,
+      "rows_per_s": 5058.823447234282,
+      "p50_ms": 382.88233850107645,
+      "p95_ms": 462.6898642491142,
+      "p99_ms": 479.77125699981116,
+      "max_ms": 481.7394969977613
+    }
+  }
+}

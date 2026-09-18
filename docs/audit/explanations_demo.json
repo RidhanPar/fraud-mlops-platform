@@ -1,0 +1,168 @@
+{
+  "caught_fraud_baseline": {
+    "prediction_id": 2535,
+    "request_id": "ef75aa86-118e-47bb-ad8f-77ca1e46f891",
+    "decided_at": "2026-09-18T11:28:26.155687+00:00",
+    "caller": "unidentified",
+    "model_version": "1",
+    "model_sha256": "d53452ceb8f7ace03ae3e571f0031963c0d75b37c6d9b3f319e6147378f6acc3",
+    "score": 0.9994725584983826,
+    "threshold": 0.994394,
+    "decision": "fraud",
+    "input": {
+      "V1": -6.61821088302128,
+      "V2": 3.83594330652809,
+      "V3": -6.31645312939344,
+      "V4": 1.84411148322924,
+      "V5": -2.47689242073119,
+      "V6": -1.88671810778613,
+      "V7": -3.81749461717225,
+      "V8": 0.613470204441387,
+      "V9": -1.48212104737573,
+      "V10": -4.86874726825181,
+      "V11": 3.35972193954249,
+      "V12": -5.96916163430263,
+      "V13": 0.0511899909273825,
+      "V14": -8.72449560202264,
+      "V15": 0.776390603031746,
+      "V16": -3.93938374023711,
+      "V17": -7.16443030217363,
+      "V18": -2.43467181629124,
+      "V19": 0.235226841085862,
+      "V20": -0.953826982523315,
+      "V21": 1.63662230588548,
+      "V22": 0.0387273057562163,
+      "V23": 0.27821816645377,
+      "V24": 0.786670356804443,
+      "V25": 0.063894559165062,
+      "V26": 0.154707097104458,
+      "V27": -2.04240272642132,
+      "V28": 1.40514055826157,
+      "Time": 151972.0,
+      "Amount": 57.73
+    },
+    "record_hash": "ada9449b5071839917d8eed490f2a9bab388bce728805ba4d653039c982350b1",
+    "integrity_ok": true,
+    "explanation": {
+      "method": "TreeSHAP (xgboost pred_contribs), log odds",
+      "base_value": -0.10315154492855072,
+      "score_from_contributions": 0.9994725192071353,
+      "top_contributions": [
+        {
+          "feature": "V14",
+          "value": -8.72449560202264,
+          "contribution": 5.1794233322143555,
+          "direction": "towards fraud"
+        },
+        {
+          "feature": "V17",
+          "value": -7.16443030217363,
+          "contribution": 1.5738362073898315,
+          "direction": "towards fraud"
+        },
+        {
+          "feature": "V28",
+          "value": 1.40514055826157,
+          "contribution": -1.1023509502410889,
+          "direction": "towards legitimate"
+        },
+        {
+          "feature": "V12",
+          "value": -5.96916163430263,
+          "contribution": 0.9377967119216919,
+          "direction": "towards fraud"
+        },
+        {
+          "feature": "V10",
+          "value": -4.86874726825181,
+          "contribution": 0.8545658588409424,
+          "direction": "towards fraud"
+        }
+      ],
+      "other_features_total": 0.2067514881491661
+    }
+  },
+  "missed_fraud_v14_outage": {
+    "prediction_id": 41104,
+    "request_id": "8f0be59f-8ec1-4af2-965e-a5a9b6cb401a",
+    "decided_at": "2026-09-18T11:31:01.555176+00:00",
+    "caller": "unidentified",
+    "model_version": "1",
+    "model_sha256": "d53452ceb8f7ace03ae3e571f0031963c0d75b37c6d9b3f319e6147378f6acc3",
+    "score": 0.8741210103034973,
+    "threshold": 0.994394,
+    "decision": "legitimate",
+    "input": {
+      "V1": -1.60021129907252,
+      "V2": -3.48813018118561,
+      "V3": -6.45930280667571,
+      "V4": 3.24681566349703,
+      "V5": -1.61460769860713,
+      "V6": -1.26037454854632,
+      "V7": 0.288223321921388,
+      "V8": -0.0489639910109505,
+      "V9": -0.734974617920653,
+      "V10": -4.44148408070017,
+      "V11": 2.94437484242405,
+      "V12": -3.80546898374331,
+      "V13": -2.10222683492697,
+      "V14": 0.0,
+      "V15": -0.641736399701777,
+      "V16": -1.55596289626148,
+      "V17": -2.08406707082134,
+      "V18": 0.394247352869229,
+      "V19": 0.0833797227600835,
+      "V20": 3.18935489592753,
+      "V21": 1.19117480721903,
+      "V22": -0.96714144500067,
+      "V23": -1.46342052446637,
+      "V24": -0.624230851495284,
+      "V25": -0.176461532068143,
+      "V26": 0.400348351070197,
+      "V27": 0.152946864261687,
+      "V28": 0.477774924576796,
+      "Time": 154278.0,
+      "Amount": 1504.93
+    },
+    "record_hash": "8b3e733c5733cc2f2e6614a3c27fdb191d281633854771e3070221a10a78fbe6",
+    "integrity_ok": true,
+    "explanation": {
+      "method": "TreeSHAP (xgboost pred_contribs), log odds",
+      "base_value": -0.10315154492855072,
+      "score_from_contributions": 0.8741210016695433,
+      "top_contributions": [
+        {
+          "feature": "V14",
+          "value": 0.0,
+          "contribution": -2.2093067169189453,
+          "direction": "towards legitimate"
+        },
+        {
+          "feature": "V17",
+          "value": -2.08406707082134,
+          "contribution": 2.154728889465332,
+          "direction": "towards fraud"
+        },
+        {
+          "feature": "V4",
+          "value": 3.24681566349703,
+          "contribution": 1.561481237411499,
+          "direction": "towards fraud"
+        },
+        {
+          "feature": "V12",
+          "value": -3.80546898374331,
+          "contribution": 1.3411959409713745,
+          "direction": "towards fraud"
+        },
+        {
+          "feature": "V23",
+          "value": -1.46342052446637,
+          "contribution": -0.8002328872680664,
+          "direction": "towards legitimate"
+        }
+      ],
+      "other_features_total": -0.006817352259531617
+    }
+  }
+}

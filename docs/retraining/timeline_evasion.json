@@ -1,0 +1,22 @@
+{
+  "scenario": "evasion",
+  "incident": "fraud transactions shifted 70% towards the legitimate mean (fraudster adaptation)",
+  "phases": [
+    {
+      "phase": "baseline",
+      "start": "2026-09-18T11:36:22.674525+00:00",
+      "end": "2026-09-18T11:38:52.744247+00:00"
+    },
+    {
+      "phase": "incident",
+      "start": "2026-09-18T11:38:52.744247+00:00",
+      "end": "2026-09-18T11:42:52.939681+00:00"
+    },
+    {
+      "phase": "recovery",
+      "start": "2026-09-18T11:42:52.939681+00:00",
+      "end": "2026-09-18T11:44:23.046354+00:00"
+    }
+  ],
+  "rows_sent": 119700
+}

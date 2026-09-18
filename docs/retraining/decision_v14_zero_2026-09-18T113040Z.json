@@ -1,0 +1,22 @@
+{
+  "evaluated_at": "2026-09-18T11:30:40+00:00",
+  "signals": {
+    "window": "2m",
+    "stuck_features": [],
+    "reject_rate": null,
+    "recall_max": 0.7333333333333333,
+    "labelled_frauds_min": 0.0,
+    "drifting_features": [],
+    "score_psi_min": 0.0062349181287178965,
+    "flag_rate_ratio": 0.46528135043711843,
+    "model_age_days": 0.20902989583434883
+  },
+  "decision": {
+    "action": "NO_ACTION",
+    "reasons": [
+      "no data fault, no sustained drift, recall healthy or not yet measurable",
+      "performance unconfirmed: fewer labelled frauds than the policy minimum"
+    ],
+    "next_steps": []
+  }
+}

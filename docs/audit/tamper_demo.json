@@ -1,0 +1,26 @@
+{
+  "verify_before": {
+    "ok": true,
+    "rows": 239200,
+    "seals": 37
+  },
+  "target": {
+    "prediction_id": 239173,
+    "transaction_id": "sim-143622-119677",
+    "score": 0.999625563621521,
+    "decision": "fraud"
+  },
+  "1_app_role_update": "refused: permission denied for table predictions",
+  "2_admin_update": "refused: audit table predictions is append only",
+  "3_admin_disables_trigger_and_forges_hash": "succeeded",
+  "verify_after_forgery": {
+    "ok": false,
+    "problems": [
+      "seal 37: rows in ids 236401..239200 changed since sealing"
+    ]
+  },
+  "verify_after_restore": {
+    "ok": true,
+    "problems": []
+  }
+}

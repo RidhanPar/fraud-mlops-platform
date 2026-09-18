@@ -26,12 +26,14 @@ def test_zero_filled_feature_is_the_top_drifter():
 
 @pytest.fixture
 def store(tmp_path):
-    return PredictionStore(f"sqlite:///{(tmp_path / 'm.db').as_posix()}")
+    s = PredictionStore(f"sqlite:///{(tmp_path / 'm.db').as_posix()}")
+    s.create_schema()
+    return s
 
 
 def _log(store, df, scores, prefix):
     ids = [f"{prefix}-{i}" for i in range(len(df))]
-    store.record_predictions("r", "1", 0.5, df[RAW_COLUMNS].to_dict("records"), ids, scores)
+    store.record_predictions("r", "test", "1", "0" * 64, 0.5, df[RAW_COLUMNS].to_dict("records"), ids, scores)
     return ids
 
 
@@ -49,6 +51,7 @@ def test_run_cycle_flags_drift_and_recall(store):
 
     report = run_cycle(store, ref, thresholds, 0.5, cfg)
     assert "V14" in {d["feature"] for d in report["drifting"]}
+    assert report["stuck_features"] == ["V14"]
     assert report["recall"] == 0.0
 
 
@@ -73,5 +76,6 @@ def test_drift_gauges_reset_when_window_too_small(store):
     assert monitor.FEATURE_PSI.labels("V14")._value.get() > 1
 
     small = PredictionStore(f"sqlite:///{store.engine.url.database}.empty")
+    small.create_schema()
     run_cycle(small, ref, {f: 0.25 for f in MONITORED_FEATURES}, 0.5, cfg)
     assert np.isnan(monitor.FEATURE_PSI.labels("V14")._value.get())

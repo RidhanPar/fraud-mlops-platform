@@ -1,0 +1,31 @@
+{
+  "evaluated_at": "2026-09-18T11:34:40+00:00",
+  "signals": {
+    "window": "2m",
+    "stuck_features": [
+      "V14"
+    ],
+    "reject_rate": null,
+    "recall_max": 0.07407407407407407,
+    "labelled_frauds_min": 26.0,
+    "drifting_features": [
+      "V14"
+    ],
+    "score_psi_min": 0.005702653406863374,
+    "flag_rate_ratio": 0.015873015873015876,
+    "model_age_days": 0.2118076736121266
+  },
+  "decision": {
+    "action": "FIX_DATA",
+    "reasons": [
+      "stuck values in V14 (upstream fill or default)",
+      "recall 0.07 is a symptom of the fault, not model decay"
+    ],
+    "next_steps": [
+      "Page the owner of the upstream feature service; do not retrain.",
+      "Mark the last 2m of prediction log as excluded from training data.",
+      "Route affected decisions to fallback rules or manual review until inputs recover.",
+      "After recovery, rescore logged transactions from the incident window."
+    ]
+  }
+}

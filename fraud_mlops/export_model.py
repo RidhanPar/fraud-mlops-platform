@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 
 import mlflow
@@ -21,6 +22,7 @@ import pandas as pd
 from mlflow import MlflowClient
 
 from fraud_mlops import data as data_mod
+from fraud_mlops.audit.hashing import file_sha256
 from fraud_mlops.config import ROOT, load_params
 from fraud_mlops.features import MODEL_COLUMNS, RAW_COLUMNS
 from fraud_mlops.monitoring.drift import feature_drift
@@ -83,6 +85,8 @@ def export(alias: str, out: Path) -> dict:
         "alias": alias,
         "run_id": mv.run_id,
         "threshold": float(mv.tags["threshold"]),
+        "model_sha256": file_sha256(out / "model.pkl"),
+        "trained_at": datetime.fromtimestamp(run.info.start_time / 1000, timezone.utc).isoformat(),
         "git_sha": run.data.tags.get("git_sha"),
         "data_sha256": run.data.params.get("data.sha256"),
         "holdout_metrics": {

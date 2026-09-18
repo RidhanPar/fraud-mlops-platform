@@ -1,0 +1,21 @@
+{
+  "evaluated_at": "2026-09-18T11:38:45+00:00",
+  "signals": {
+    "window": "2m",
+    "stuck_features": [],
+    "reject_rate": null,
+    "recall_max": 0.6956521739130435,
+    "labelled_frauds_min": 22.0,
+    "drifting_features": [],
+    "score_psi_min": 0.007842951165752645,
+    "flag_rate_ratio": 0.41567460317460314,
+    "model_age_days": 0.21464332176027476
+  },
+  "decision": {
+    "action": "NO_ACTION",
+    "reasons": [
+      "no data fault, no sustained drift, recall healthy or not yet measurable"
+    ],
+    "next_steps": []
+  }
+}
