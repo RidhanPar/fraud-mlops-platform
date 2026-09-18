@@ -6,3 +6,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.pyc
+serving_model/
+loadtest/payloads.json

@@ -1,0 +1,75 @@
+{
+  "target": "http://fraud-api:8000",
+  "duration_s_per_scenario": 20.0,
+  "note": "service: --cpus 2, 2 uvicorn workers. generator: separate container, --cpus 4, 4 processes, same Docker network (no host port proxy). Host: Windows 11, 8 cores, Docker Desktop WSL2.",
+  "generator_processes": 4,
+  "client_host": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+  "results": {
+    "single c=1": {
+      "requests": 2937,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 146.80539416457881,
+      "rows_per_s": 146.80539416457881,
+      "p50_ms": 6.529459000148563,
+      "p95_ms": 8.5259733998555,
+      "p99_ms": 11.048283799991617,
+      "max_ms": 53.967327999998815
+    },
+    "single c=8": {
+      "requests": 5552,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 277.3604621024097,
+      "rows_per_s": 277.3604621024097,
+      "p50_ms": 26.656322500002716,
+      "p95_ms": 42.06847910002125,
+      "p99_ms": 55.310593859985566,
+      "max_ms": 100.36013800004184
+    },
+    "single c=32": {
+      "requests": 5503,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 273.9333021732158,
+      "rows_per_s": 273.9333021732158,
+      "p50_ms": 113.22713499998827,
+      "p95_ms": 167.45141330015934,
+      "p99_ms": 199.04193615997426,
+      "max_ms": 324.27833599990663
+    },
+    "single c=64": {
+      "requests": 5422,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 268.9916656776273,
+      "rows_per_s": 268.9916656776273,
+      "p50_ms": 209.09199100003661,
+      "p95_ms": 404.9794520498039,
+      "p99_ms": 469.69029255008525,
+      "max_ms": 504.0371730001425
+    },
+    "batch100 c=4": {
+      "requests": 3296,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 164.7051626932026,
+      "rows_per_s": 16470.516269320262,
+      "p50_ms": 22.832904499978213,
+      "p95_ms": 32.09383500001195,
+      "p99_ms": 49.05691204999143,
+      "max_ms": 85.01474299987422
+    },
+    "batch1000 c=2": {
+      "requests": 592,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 29.509836102698838,
+      "rows_per_s": 29509.83610269884,
+      "p50_ms": 62.611015999891606,
+      "p95_ms": 109.03409140001935,
+      "p99_ms": 123.23042612998734,
+      "max_ms": 166.86151499993684
+    }
+  }
+}

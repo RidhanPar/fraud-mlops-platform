@@ -1,0 +1,11 @@
+# Serving only: no MLflow, no SMOTE training deps beyond what the pickle references.
+fastapi==0.136.3
+uvicorn[standard]==0.48.0
+pydantic==2.13.4
+# CPU only wheel: same library and version, without ~700MB of CUDA libraries.
+xgboost-cpu==3.2.0
+scikit-learn==1.8.0
+imbalanced-learn==0.14.1
+pandas==2.2.2
+numpy==2.4.6
+cloudpickle==3.1.2

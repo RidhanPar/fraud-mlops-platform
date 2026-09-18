@@ -1,0 +1,5 @@
+*
+!fraud_mlops/
+!serving_model/
+!requirements-serve.txt
+**/__pycache__
