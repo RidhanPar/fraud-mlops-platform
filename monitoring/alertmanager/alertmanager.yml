@@ -1,0 +1,17 @@
+route:
+  receiver: alert-sink
+  group_by: [alertname, feature]
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+
+receivers:
+  - name: alert-sink
+    webhook_configs:
+      - url: http://alert-sink:9099/
+        send_resolved: true
+
+inhibit_rules:
+  # If the API is down, do not also page for everything downstream of it.
+  - source_matchers: [alertname="FraudApiDown"]
+    target_matchers: [severity="warning"]

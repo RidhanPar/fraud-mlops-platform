@@ -3,7 +3,7 @@
 Production lifecycle around the PayGuard XGBoost fraud model: registry, reproducible
 training, promotion gate, serving, monitoring, drift, audit and infrastructure.
 
-Status: Phase 1 (registry, training, gate) and Phase 2 (serving, load test) complete.
+Status: Phases 1 to 3 complete (registry and gate, serving, monitoring and drift).
 The full README with architecture and measured numbers lands in Phase 5.
 
 ## Phase 1 quick start
@@ -30,3 +30,16 @@ python -m loadtest.run --export-payloads loadtest/payloads.json
 
 Endpoints: `POST /predict`, `POST /predict/batch` (max 1000 rows), `GET /health`,
 `GET /ready`, `GET /model`, and interactive docs at `/docs`.
+
+## Phase 3 quick start
+
+```bash
+python -m fraud_mlops.export_model      # model + training reference + calibrated drift thresholds
+docker compose up -d --build            # API, Postgres, monitor, Prometheus, Alertmanager, Grafana
+python scripts/simulate_drift.py        # 12 min replay with an injected upstream incident
+python scripts/report_drift_event.py    # chart and summary from Prometheus
+```
+
+Grafana http://localhost:3000, Prometheus http://localhost:9090, Alertmanager http://localhost:9093.
+Design and alert policy: [docs/MONITORING.md](docs/MONITORING.md).
+The drift event write up: [docs/drift_event/DRIFT_EVENT.md](docs/drift_event/DRIFT_EVENT.md).

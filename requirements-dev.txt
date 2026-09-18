@@ -3,3 +3,6 @@ pytest==9.0.3
 httpx==0.28.1
 fastapi==0.136.3
 cloudpickle==3.1.2
+SQLAlchemy==2.0.50
+prometheus_client==0.25.0
+matplotlib

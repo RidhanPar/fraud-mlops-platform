@@ -37,6 +37,17 @@ class BatchRequest(BaseModel):
     transactions: list[Transaction] = Field(min_length=1, max_length=MAX_BATCH)  # type: ignore[valid-type]
 
 
+class Label(BaseModel):
+    model_config = _STRICT
+    transaction_id: str = Field(min_length=1, max_length=64)
+    is_fraud: bool
+
+
+class FeedbackRequest(BaseModel):
+    model_config = _STRICT
+    labels: list[Label] = Field(min_length=1, max_length=10_000)
+
+
 class Prediction(BaseModel):
     transaction_id: str | None
     fraud_probability: float

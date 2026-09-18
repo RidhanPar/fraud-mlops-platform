@@ -8,3 +8,4 @@ __pycache__/
 *.pyc
 serving_model/
 loadtest/payloads.json
+monitoring/alert_log/

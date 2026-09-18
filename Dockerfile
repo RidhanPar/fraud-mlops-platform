@@ -17,10 +17,12 @@ USER app
 
 ENV MODEL_DIR=/app/serving_model \
     WORKERS=2 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
 EXPOSE 8000
 
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s \
     CMD curl -fs http://localhost:8000/ready || exit 1
 
-CMD ["sh", "-c", "uvicorn fraud_mlops.api.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS}"]
+# Metric files from a previous run would be merged into the new one, so clear them first.
+CMD ["sh", "-c", "rm -rf $PROMETHEUS_MULTIPROC_DIR && mkdir -p $PROMETHEUS_MULTIPROC_DIR && exec uvicorn fraud_mlops.api.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS}"]

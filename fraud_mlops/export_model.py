@@ -16,13 +16,45 @@ import shutil
 from pathlib import Path
 
 import mlflow
+import numpy as np
+import pandas as pd
 from mlflow import MlflowClient
 
+from fraud_mlops import data as data_mod
 from fraud_mlops.config import ROOT, load_params
 from fraud_mlops.features import MODEL_COLUMNS, RAW_COLUMNS
+from fraud_mlops.monitoring.drift import feature_drift
 from fraud_mlops.train import tracking_uri
 
 DEFAULT_OUT = ROOT / "serving_model"
+
+# Drift alert thresholds are calibrated, not taken from a textbook. This dataset
+# has real day over day shift in several PCA features (V1 PSI ~1.5 between days)
+# while the model stays accurate, so a flat 0.25 would alert every day.
+CALIBRATION_WINDOWS = 10
+CALIBRATION_WINDOW_ROWS = 5000
+PSI_FLOOR = 0.25
+PSI_MARGIN = 1.5
+
+
+def calibrate_drift_thresholds(reference: pd.DataFrame, params: dict) -> dict:
+    """Per feature PSI threshold = max(floor, margin x worst PSI seen on known good
+    traffic). Known good = the validation slice, which the model never trained on
+    and on which its performance was verified."""
+    df = data_mod.load(ROOT / params["data"]["path"])
+    valid = data_mod.time_split(df, params["data"]["train_frac"], params["data"]["valid_frac"]).valid
+    runs = [
+        feature_drift(reference, valid.sample(CALIBRATION_WINDOW_ROWS, random_state=i)).set_index("feature").psi
+        for i in range(CALIBRATION_WINDOWS)
+    ]
+    worst = pd.concat(runs, axis=1).max(axis=1)
+    return {
+        "method": f"max({PSI_FLOOR}, {PSI_MARGIN} x max PSI over {CALIBRATION_WINDOWS} "
+        f"windows of {CALIBRATION_WINDOW_ROWS} validation rows)",
+        "window_rows": CALIBRATION_WINDOW_ROWS,
+        "thresholds": {f: float(np.maximum(PSI_FLOOR, PSI_MARGIN * v)) for f, v in worst.items()},
+        "baseline_max_psi": {f: float(v) for f, v in worst.items()},
+    }
 
 
 def export(alias: str, out: Path) -> dict:
@@ -38,8 +70,12 @@ def export(alias: str, out: Path) -> dict:
     out.mkdir(parents=True)
     model_dir = Path(mlflow.artifacts.download_artifacts(f"models:/{name}/{mv.version}"))
     shutil.copy(model_dir / "model.pkl", out / "model.pkl")
-    ref = mlflow.artifacts.download_artifacts(run_id=mv.run_id, artifact_path="reference")
-    shutil.copy(Path(ref) / "reference.parquet", out / "reference.parquet")
+    ref_dir = mlflow.artifacts.download_artifacts(run_id=mv.run_id, artifact_path="reference")
+    reference = pd.read_parquet(Path(ref_dir) / "reference.parquet")
+    # CSV keeps the serving image free of a parquet engine.
+    reference.to_csv(out / "reference.csv.gz", index=False)
+    drift_cfg = calibrate_drift_thresholds(reference, load_params())
+    (out / "drift_thresholds.json").write_text(json.dumps(drift_cfg, indent=2), encoding="utf-8")
 
     meta = {
         "model_name": name,

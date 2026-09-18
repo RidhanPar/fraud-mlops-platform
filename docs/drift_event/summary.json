@@ -1,0 +1,108 @@
+{
+  "incident": "V14 zero filled by upstream feature service",
+  "rows_sent": 179250,
+  "phases": [
+    {
+      "phase": "baseline",
+      "start": "2026-09-18T07:18:48.503119+00:00",
+      "end": "2026-09-18T07:21:48.668256+00:00"
+    },
+    {
+      "phase": "incident",
+      "start": "2026-09-18T07:21:48.668256+00:00",
+      "end": "2026-09-18T07:26:48.767766+00:00"
+    },
+    {
+      "phase": "recovery",
+      "start": "2026-09-18T07:26:48.767766+00:00",
+      "end": "2026-09-18T07:30:48.876205+00:00"
+    }
+  ],
+  "alerts": {
+    "FeatureDrift": {
+      "first_firing_after_incident_start_s": 85,
+      "last_firing_after_incident_end_s": 40
+    },
+    "FraudFlagRateCollapsed": {
+      "first_firing_after_incident_start_s": 130,
+      "last_firing_after_incident_end_s": 55
+    },
+    "ModelRecallDegraded": {
+      "first_firing_after_incident_start_s": 150,
+      "last_firing_after_incident_end_s": 120
+    }
+  },
+  "alerts_firing_during_baseline": [],
+  "v14_psi": {
+    "baseline_max": 0.1195,
+    "incident_max": 8.2831
+  },
+  "flag_rate": {
+    "baseline_mean": 0.0009,
+    "incident_min": 0.0
+  },
+  "labelled_recall": {
+    "baseline_mean": 0.6717,
+    "incident_min": 0.0
+  },
+  "score_psi": {
+    "baseline_max": 0.012,
+    "incident_max": 0.0156
+  },
+  "notifications": [
+    {
+      "received_at": "2026-09-18T07:23:23.906924+00:00",
+      "status": "firing",
+      "alertname": "FeatureDrift",
+      "severity": "warning",
+      "summary": "Input drift on V14: PSI 8.28 above calibrated threshold",
+      "starts_at": "2026-09-18T07:23:08.923Z",
+      "ends_at": "0001-01-01T00:00:00Z"
+    },
+    {
+      "received_at": "2026-09-18T07:24:08.903427+00:00",
+      "status": "firing",
+      "alertname": "FraudFlagRateCollapsed",
+      "severity": "critical",
+      "summary": "Flag rate 0.005%, under 20% of the training rate",
+      "starts_at": "2026-09-18T07:23:53.923Z",
+      "ends_at": "0001-01-01T00:00:00Z"
+    },
+    {
+      "received_at": "2026-09-18T07:24:28.902337+00:00",
+      "status": "firing",
+      "alertname": "ModelRecallDegraded",
+      "severity": "critical",
+      "summary": "Recall on labelled traffic is 0.03 (release: 0.70)",
+      "starts_at": "2026-09-18T07:24:13.923Z",
+      "ends_at": "0001-01-01T00:00:00Z"
+    },
+    {
+      "received_at": "2026-09-18T07:27:53.898824+00:00",
+      "status": "resolved",
+      "alertname": "FeatureDrift",
+      "severity": "warning",
+      "summary": "Input drift on V14: PSI 0.34 above calibrated threshold",
+      "starts_at": "2026-09-18T07:23:08.923Z",
+      "ends_at": "2026-09-18T07:27:28.923Z"
+    },
+    {
+      "received_at": "2026-09-18T07:28:08.898263+00:00",
+      "status": "resolved",
+      "alertname": "FraudFlagRateCollapsed",
+      "severity": "critical",
+      "summary": "Flag rate 0.035%, under 20% of the training rate",
+      "starts_at": "2026-09-18T07:23:53.923Z",
+      "ends_at": "2026-09-18T07:27:43.923Z"
+    },
+    {
+      "received_at": "2026-09-18T07:28:58.894118+00:00",
+      "status": "resolved",
+      "alertname": "ModelRecallDegraded",
+      "severity": "critical",
+      "summary": "Recall on labelled traffic is 0.41 (release: 0.70)",
+      "starts_at": "2026-09-18T07:24:13.923Z",
+      "ends_at": "2026-09-18T07:28:48.923Z"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "target": "http://api:8000",
+  "duration_s_per_scenario": 15.0,
+  "note": "service: --cpus 2, 2 workers, WITH synchronous Postgres prediction log (fail closed) and Prometheus multiprocess metrics. generator: separate container, --cpus 4, 4 processes.",
+  "generator_processes": 4,
+  "client_host": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+  "results": {
+    "single c=1": {
+      "requests": 1348,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 89.82735503621389,
+      "rows_per_s": 89.82735503621389,
+      "p50_ms": 10.713351999811493,
+      "p95_ms": 12.796336650285411,
+      "p99_ms": 17.62445581002792,
+      "max_ms": 106.60590999987107
+    },
+    "single c=8": {
+      "requests": 3191,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 212.02820240635762,
+      "rows_per_s": 212.02820240635762,
+      "p50_ms": 33.96325699986846,
+      "p95_ms": 70.53552950014819,
+      "p99_ms": 89.71912610013509,
+      "max_ms": 158.5087929997826
+    },
+    "single c=32": {
+      "requests": 2571,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 169.66423510103823,
+      "rows_per_s": 169.66423510103823,
+      "p50_ms": 176.2170619999779,
+      "p95_ms": 347.6005335000991,
+      "p99_ms": 412.10602549990676,
+      "max_ms": 540.0873160001538
+    },
+    "single c=64": {
+      "requests": 2697,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 176.69366751098985,
+      "rows_per_s": 176.69366751098985,
+      "p50_ms": 353.22598100037794,
+      "p95_ms": 485.58791840014226,
+      "p99_ms": 553.9115946401577,
+      "max_ms": 793.176535999919
+    },
+    "batch100 c=4": {
+      "requests": 958,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 63.66739965822895,
+      "rows_per_s": 6366.739965822895,
+      "p50_ms": 46.76654299987604,
+      "p95_ms": 116.3101659499034,
+      "p99_ms": 142.96252026992968,
+      "max_ms": 188.084513999911
+    },
+    "batch1000 c=2": {
+      "requests": 90,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 5.95109372096935,
+      "rows_per_s": 5951.09372096935,
+      "p50_ms": 328.66988050000145,
+      "p95_ms": 391.7678930499278,
+      "p99_ms": 419.3410347101053,
+      "max_ms": 423.3202790001087
+    }
+  }
+}

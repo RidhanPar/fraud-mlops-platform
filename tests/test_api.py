@@ -23,6 +23,7 @@ def client(tmp_path_factory):
     (out / "metadata.json").write_text(json.dumps({"model_version": "7", "threshold": 0.5}))
 
     main.MODEL_DIR = out
+    main.DATABASE_URL = f"sqlite:///{(out / 'log.db').as_posix()}"
     with TestClient(main.app) as c:
         yield c
 
@@ -89,3 +90,38 @@ def test_empty_and_oversized_batch_rejected(client, tx):
     assert client.post("/predict/batch", json={"transactions": []}).status_code == 422
     too_many = {"transactions": [tx] * (MAX_BATCH + 1)}
     assert client.post("/predict/batch", json=too_many).status_code == 422
+
+
+def test_every_prediction_is_logged_with_model_version(client, tx):
+    store = main.state["store"]
+    before = len(store.recent_predictions(100_000))
+    client.post("/predict", json=tx)
+    client.post("/predict/batch", json={"transactions": [tx, tx]})
+    logged = store.recent_predictions(100_000)
+    assert len(logged) == before + 3
+    assert set(logged.columns) >= set(RAW_COLUMNS) | {"score", "is_fraud"}
+
+
+def test_feedback_joins_labels_to_predictions(client, tx):
+    tx["transaction_id"] = "fb-1"
+    client.post("/predict", json=tx)
+    r = client.post("/feedback", json={"labels": [{"transaction_id": "fb-1", "is_fraud": True}]})
+    assert r.status_code == 202
+    labelled = main.state["store"].recent_labelled(10)
+    assert labelled.iloc[0]["label"] == True  # noqa: E712
+
+
+def test_prediction_refused_when_log_unavailable(client, tx, monkeypatch):
+    def broken(*a, **k):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(main.state["store"], "record_predictions", broken)
+    assert client.post("/predict", json=tx).status_code == 503
+
+
+def test_metrics_exposed(client, tx):
+    client.post("/predict", json=tx)
+    body = client.get("/metrics").text
+    for name in ("fraud_http_request_duration_seconds_bucket", "fraud_score_bucket",
+                 "fraud_rows_scored_total", 'fraud_model_info{model_version="7"}'):
+        assert name in body

@@ -1,0 +1,107 @@
+# `for` durations are short so the demo fires within minutes. In production they
+# would be longer (5 to 15 minutes) to trade detection speed for fewer false pages.
+groups:
+  - name: service
+    rules:
+      - alert: FraudApiDown
+        expr: up{job="fraud-api"} == 0
+        for: 30s
+        labels: {severity: critical}
+        annotations:
+          summary: "Fraud API is not answering scrapes"
+
+      - alert: PredictLatencyP99High
+        # Card authorisation budget is ~100 ms for the model call.
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(fraud_http_request_duration_seconds_bucket{route="/predict"}[1m]))) > 0.1
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "p99 latency on /predict is {{ $value | humanizeDuration }}, budget 100ms"
+
+      - alert: BatchLatencyP99High
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(fraud_http_request_duration_seconds_bucket{route="/predict/batch"}[1m]))) > 0.5
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "p99 latency on /predict/batch is {{ $value | humanizeDuration }}, budget 500ms"
+
+      - alert: HighServerErrorRate
+        expr: |
+          sum(rate(fraud_http_requests_total{status=~"5.."}[1m]))
+            / sum(rate(fraud_http_requests_total[1m])) > 0.01
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of requests are failing with 5xx"
+
+      - alert: HighInputRejectRate
+        # A spike in 422s usually means an upstream team changed the payload.
+        expr: |
+          sum(rate(fraud_http_requests_total{status="422"}[1m]))
+            / sum(rate(fraud_http_requests_total{route=~"/predict.*"}[1m])) > 0.05
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of prediction requests rejected as invalid"
+
+      - alert: PredictionLogFailing
+        # The API fails closed, so this means decisions are being refused.
+        expr: increase(fraud_prediction_log_failures_total[2m]) > 0
+        labels: {severity: critical}
+        annotations:
+          summary: "Prediction log writes failing, requests are being refused"
+
+  - name: model
+    rules:
+      - alert: DriftMonitorStale
+        expr: time() - fraud_monitor_last_run_timestamp_seconds > 120 or absent(fraud_monitor_last_run_timestamp_seconds)
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: "Drift monitor has not completed a cycle in 2 minutes (monitoring the monitor)"
+
+      - alert: FeatureDrift
+        # Thresholds are calibrated per feature on known good traffic, see drift_thresholds.json.
+        expr: fraud_feature_psi > on(feature) fraud_feature_psi_threshold
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: "Input drift on {{ $labels.feature }}: PSI {{ $value | printf \"%.2f\" }} above calibrated threshold"
+
+      - alert: PredictionDrift
+        # Normal score PSI on unseen days is ~0.01 to 0.02.
+        expr: fraud_score_psi > 0.1
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: "Score distribution shifted: PSI {{ $value | printf \"%.3f\" }}"
+
+      - alert: FraudFlagRateCollapsed
+        # The model has nearly stopped flagging. Either fraud vanished or the model went blind.
+        expr: |
+          fraud_flag_rate < 0.2 * fraud_reference_flag_rate
+            and fraud_flag_rate_window_rows >= 20000
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "Flag rate {{ $value | humanizePercentage }}, under 20% of the training rate"
+
+      - alert: FraudFlagRateSpike
+        # Either an attack in progress or a broken feature inflating scores. Review queue will overflow.
+        expr: |
+          fraud_flag_rate > 5 * fraud_reference_flag_rate
+            and fraud_flag_rate_window_rows >= 20000
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: "Flag rate {{ $value | humanizePercentage }}, over 5x the training rate"
+
+      - alert: ModelRecallDegraded
+        # Holdout recall at release was 0.70. Needs at least 10 confirmed frauds in the window.
+        expr: fraud_labelled_recall < 0.5 and fraud_labelled_frauds >= 10
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: "Recall on labelled traffic is {{ $value | printf \"%.2f\" }} (release: 0.70)"
