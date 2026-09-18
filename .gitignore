@@ -1,0 +1,8 @@
+data/raw/
+mlflow.db
+mlartifacts/
+mlruns/
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc

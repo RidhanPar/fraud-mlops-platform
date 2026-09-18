@@ -1,0 +1,31 @@
+# Single source of truth for a training run. Every value here is logged to MLflow,
+# so any registered model version can be rebuilt from this file plus the data hash.
+
+data:
+  path: data/raw/creditcard.csv
+  # Time ordered split: train on the past, pick the threshold on the next slice,
+  # judge the model on the most recent slice it has never seen.
+  train_frac: 0.6
+  valid_frac: 0.2          # holdout is the remaining 0.2
+
+seed: 42
+
+model:
+  # Hyperparameters of the existing tuned PayGuard model (models/fraud_model.pkl).
+  n_estimators: 200
+  max_depth: 5
+  learning_rate: 0.1
+  subsample: 0.8
+  colsample_bytree: 0.8
+  use_smote: true
+
+gate:
+  primary_metric: pr_auc   # ROC AUC is saturated near 1.0 on this data, PR AUC is not
+  min_improvement: 0.005   # candidate must beat the champion by at least this much
+  max_recall_drop: 0.02    # and must not lose more than this much recall at its threshold
+  min_pr_auc_floor: 0.70   # absolute floor when there is no champion yet
+  bootstrap_rounds: 500
+
+registry:
+  model_name: fraud-detector
+  experiment: fraud-detector-training
