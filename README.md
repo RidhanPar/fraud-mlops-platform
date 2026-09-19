@@ -1,5 +1,7 @@
 # Fraud Detection MLOps Platform
 
+[![ci](https://github.com/RidhanPar/fraud-mlops-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/RidhanPar/fraud-mlops-platform/actions/workflows/ci.yml)
+
 The full production lifecycle around an XGBoost card fraud model: reproducible training with a
 model registry and promotion gate, a containerised inference service, monitoring with drift
 detection and alerting, a tamper evident audit trail with per decision explanations, a written
