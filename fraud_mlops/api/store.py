@@ -31,6 +31,7 @@ from sqlalchemy import (
     func,
     insert,
     select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -92,6 +93,9 @@ explanations = Table(
 
 APPEND_ONLY_TABLES = ("predictions", "labels", "audit_seals", "explanations")
 
+# Advisory lock key for the seal barrier (see record_predictions and settled_max_id).
+SEAL_BARRIER = 7332
+
 
 def utcnow() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
@@ -140,7 +144,27 @@ class PredictionStore:
             rec["record_hash"] = record_hash(rec)
             records.append(rec)
         with self.engine.begin() as conn:
+            if self.engine.dialect.name == "postgresql":
+                # Held until commit. The sealer's exclusive take on the same key waits
+                # for every in flight insert, so no id below its cut off can still be
+                # uncommitted.
+                conn.execute(text("SELECT pg_advisory_xact_lock_shared(:k)"), {"k": SEAL_BARRIER})
             conn.execute(insert(predictions), records)
+
+    def settled_max_id(self) -> int:
+        """Highest id such that every row at or below it is committed, and every row
+        inserted from now on gets a higher id.
+
+        Ids are drawn from a sequence during the INSERT but only become visible at
+        commit, so under concurrency a lower id can commit after a higher one. A
+        time based cut off leaves holes in a sealed range (this happened on AWS:
+        see docs/AWS.md). The exclusive advisory lock is a barrier: it waits for
+        all in flight inserts to commit and briefly holds new ones back.
+        """
+        with self.engine.begin() as conn:
+            if self.engine.dialect.name == "postgresql":
+                conn.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": SEAL_BARRIER})
+            return int(conn.execute(select(func.coalesce(func.max(predictions.c.id), 0))).scalar_one())
 
     def record_labels(self, items: Sequence[tuple[str, bool]]) -> None:
         now = utcnow()
@@ -173,14 +197,14 @@ class PredictionStore:
         with self.engine.connect() as conn:
             return [dict(r._mapping) for r in conn.execute(q)]
 
-    def iter_predictions(self, after_id: int = 0, until: dt.datetime | None = None,
+    def iter_predictions(self, after_id: int = 0, max_id: int | None = None,
                          batch: int = 5000) -> Iterator[dict[str, Any]]:
         """Stream rows in id order, for sealing and verification."""
         last = after_id
         while True:
             q = select(predictions).where(predictions.c.id > last)
-            if until is not None:
-                q = q.where(predictions.c.created_at < until)
+            if max_id is not None:
+                q = q.where(predictions.c.id <= max_id)
             with self.engine.connect() as conn:
                 rows = conn.execute(q.order_by(predictions.c.id).limit(batch)).all()
             if not rows:

@@ -1,0 +1,91 @@
+{
+  "verify_before": {
+    "database_chain_only": {
+      "ok": false,
+      "problems": [
+        "seal 2: expected 6650 rows in ids 1924..8582, found 6659"
+      ],
+      "rows_checked": 272061,
+      "seals_checked": 37
+    },
+    "with_s3_anchors": {
+      "ok": false,
+      "problems": [
+        "seal 2: expected 6650 rows in ids 1924..8582, found 6659"
+      ],
+      "rows_checked": 272061,
+      "seals_checked": 37
+    }
+  },
+  "target": {
+    "prediction_id": 271957,
+    "transaction_id": "sim-104306-132600",
+    "score": 0.999900221824646,
+    "seal_id": 37,
+    "seals_after_it": 0
+  },
+  "1_app_role_update": "refused: permission denied for table predictions",
+  "2_admin_update": "refused: audit table predictions is append only",
+  "3_admin_forges_row_and_row_hash": "succeeded",
+  "verify_after_row_forgery": {
+    "database_chain_only": {
+      "ok": false,
+      "problems": [
+        "seal 2: expected 6650 rows in ids 1924..8582, found 6659",
+        "seal 37: rows in ids 269262..272061 changed since sealing"
+      ],
+      "rows_checked": 272061,
+      "seals_checked": 37
+    },
+    "with_s3_anchors": {
+      "ok": false,
+      "problems": [
+        "seal 2: expected 6650 rows in ids 1924..8582, found 6659",
+        "seal 37: rows in ids 269262..272061 changed since sealing"
+      ],
+      "rows_checked": 272061,
+      "seals_checked": 37
+    }
+  },
+  "4_admin_rewrites_seal_chain": "succeeded",
+  "4_seals_rewritten": 1,
+  "verify_after_chain_rewrite": {
+    "database_chain_only": {
+      "ok": false,
+      "problems": [
+        "seal 2: expected 6650 rows in ids 1924..8582, found 6659"
+      ],
+      "rows_checked": 272061,
+      "seals_checked": 37
+    },
+    "with_s3_anchors": {
+      "ok": false,
+      "problems": [
+        "seal 2: expected 6650 rows in ids 1924..8582, found 6659",
+        "seal 37: differs from its write once copy in S3 (seals/000000269262-000000272061.json)"
+      ],
+      "rows_checked": 272061,
+      "seals_checked": 37
+    }
+  },
+  "5_delete_s3_copy": "refused: AccessDenied: Access Denied because object protected by object lock.",
+  "restore": "succeeded",
+  "verify_after_restore": {
+    "database_chain_only": {
+      "ok": false,
+      "problems": [
+        "seal 2: expected 6650 rows in ids 1924..8582, found 6659"
+      ],
+      "rows_checked": 272061,
+      "seals_checked": 37
+    },
+    "with_s3_anchors": {
+      "ok": false,
+      "problems": [
+        "seal 2: expected 6650 rows in ids 1924..8582, found 6659"
+      ],
+      "rows_checked": 272061,
+      "seals_checked": 37
+    }
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "target": "http://fraud-mlops-1226623483.eu-north-1.elb.amazonaws.com:8080",
+  "duration_s_per_scenario": 20.0,
+  "note": "AWS eu-north-1: 2 API tasks (1 vCPU, 2 GB, 2 workers each) on Fargate behind an ALB, RDS db.t4g.micro prediction log. Generator: Fargate task (2 vCPU, 4 GB, 4 processes) in the same VPC, through the ALB.",
+  "generator_processes": 4,
+  "client_host": "Linux-6.1.182-x86_64-with-glibc2.41",
+  "results": {
+    "single c=1": {
+      "requests": 1686,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 84.29434201624875,
+      "rows_per_s": 84.29434201624875,
+      "p50_ms": 12.364135999998638,
+      "p95_ms": 14.50397350000543,
+      "p99_ms": 19.93511795000702,
+      "max_ms": 92.11235699999776
+    },
+    "single c=8": {
+      "requests": 4679,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 233.49394220052721,
+      "rows_per_s": 233.49394220052721,
+      "p50_ms": 23.12254599999619,
+      "p95_ms": 76.11599450000313,
+      "p99_ms": 89.62304082000912,
+      "max_ms": 279.8194330000001
+    },
+    "single c=32": {
+      "requests": 3926,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 194.1233195512302,
+      "rows_per_s": 194.1233195512302,
+      "p50_ms": 118.47452299999617,
+      "p95_ms": 438.7039109999939,
+      "p99_ms": 563.782628000002,
+      "max_ms": 802.2372220000022
+    },
+    "single c=64": {
+      "requests": 3770,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 185.26931350691498,
+      "rows_per_s": 185.26931350691498,
+      "p50_ms": 308.3441319999949,
+      "p95_ms": 788.3300363999978,
+      "p99_ms": 980.5404026699838,
+      "max_ms": 1327.3156289999974
+    },
+    "batch100 c=4": {
+      "requests": 882,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 43.98018071451764,
+      "rows_per_s": 4398.018071451764,
+      "p50_ms": 67.30623599999319,
+      "p95_ms": 117.7939521499979,
+      "p99_ms": 223.78552862000285,
+      "max_ms": 3370.3241550000203
+    },
+    "batch1000 c=2": {
+      "requests": 37,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 1.8436543087200996,
+      "rows_per_s": 1843.6543087200996,
+      "p50_ms": 372.0468129999972,
+      "p95_ms": 3801.58997459998,
+      "p99_ms": 6578.335598439997,
+      "max_ms": 6611.247372999997
+    }
+  },
+  "fargate_task": {
+    "cpu": "2048",
+    "memory": "4096",
+    "id": "5148d1cfed734b33942a9abc5e3c2737"
+  }
+}

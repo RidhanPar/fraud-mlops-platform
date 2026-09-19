@@ -25,7 +25,7 @@ def store(tmp_path):
 
 
 def _seal_all(s):
-    while seal.seal_once(s, max_rows=120, settle_seconds=-1):
+    while seal.seal_once(s, max_rows=120):
         pass
 
 
@@ -39,9 +39,15 @@ def test_intact_trail_verifies(store):
     assert r.ok and r.rows_checked == 300 and r.seals_checked == 3 and r.unsealed_rows == 0
 
 
-def test_settle_window_leaves_fresh_rows_unsealed(store):
-    assert seal.seal_once(store, settle_seconds=60) is None
-    assert verify.verify(store).unsealed_rows == 300
+def test_seal_cuts_off_by_id_and_later_rows_stay_unsealed(store):
+    first = seal.seal_once(store)
+    assert (first["first_id"], first["last_id"], first["row_count"]) == (1, 300, 300)
+    df = make_transactions(5)
+    store.record_predictions("late", "t", "1", "a" * 64, 0.5, df[RAW_COLUMNS].to_dict("records"),
+                             [None] * 5, np.zeros(5))
+    r = verify.verify(store)
+    assert r.ok and r.unsealed_rows == 5
+    assert seal.seal_once(store)["first_id"] == 301
 
 
 def test_edited_score_is_detected(store):

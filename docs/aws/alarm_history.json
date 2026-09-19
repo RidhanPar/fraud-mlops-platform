@@ -1,0 +1,93 @@
+[
+  {
+    "time": "2026-09-19T07:38:35.656000+00:00",
+    "alarm": "latency-p99",
+    "from": "INSUFFICIENT_DATA",
+    "to": "OK",
+    "reason": "Threshold Crossed: no datapoints were received for 3 periods and 3 missing datapoints were treated as [NonBreaching]."
+  },
+  {
+    "time": "2026-09-19T07:39:09.868000+00:00",
+    "alarm": "unhealthy-targets",
+    "from": "INSUFFICIENT_DATA",
+    "to": "OK",
+    "reason": "Threshold Crossed: no datapoints were received for 2 periods and 2 missing datapoints were treated as [NonBreaching]."
+  },
+  {
+    "time": "2026-09-19T07:39:26.773000+00:00",
+    "alarm": "5xx",
+    "from": "INSUFFICIENT_DATA",
+    "to": "OK",
+    "reason": "Threshold Crossed: no datapoints were received for 2 periods and 2 missing datapoints were treated as [NonBreaching]."
+  },
+  {
+    "time": "2026-09-19T07:39:33.517000+00:00",
+    "alarm": "monitor-stale",
+    "from": "ALARM",
+    "to": "OK",
+    "reason": "Threshold Crossed: 1 datapoint [2.0 (19/09/26 07:38:00)] was not less than the threshold (1.0) and 2 missing datapoints were treated as [Breaching]."
+  },
+  {
+    "time": "2026-09-19T07:46:35.656000+00:00",
+    "alarm": "latency-p99",
+    "from": "OK",
+    "to": "ALARM",
+    "reason": "Threshold Crossed: 3 datapoints [0.9363517947137237 (19/09/26 07:43:00), 1.0396220432527776 (19/09/26 07:41:00), 0.7080050206180152 (19/09/26 07:40:00)] were greater than the threshold (0.1)."
+  },
+  {
+    "time": "2026-09-19T07:48:03.792000+00:00",
+    "alarm": "stuck-feature",
+    "from": "OK",
+    "to": "ALARM",
+    "reason": "Threshold Crossed: 1 datapoint [1.0 (19/09/26 07:47:00)] was greater than or equal to the threshold (1.0)."
+  },
+  {
+    "time": "2026-09-19T07:49:58.076000+00:00",
+    "alarm": "feature-drift",
+    "from": "OK",
+    "to": "ALARM",
+    "reason": "Threshold Crossed: 2 datapoints [1.0 (19/09/26 07:48:00), 1.0 (19/09/26 07:47:00)] were greater than or equal to the threshold (1.0)."
+  },
+  {
+    "time": "2026-09-19T07:51:05.690000+00:00",
+    "alarm": "flag-rate-collapse",
+    "from": "OK",
+    "to": "ALARM",
+    "reason": "Threshold Crossed: 2 datapoints [0.0 (19/09/26 07:50:00), 0.09523809523809525 (19/09/26 07:49:00)] were less than the threshold (0.2)."
+  },
+  {
+    "time": "2026-09-19T07:51:34.854000+00:00",
+    "alarm": "recall-degraded",
+    "from": "OK",
+    "to": "ALARM",
+    "reason": "Threshold Crossed: 2 datapoints [0.07407407407407407 (19/09/26 07:50:00), 0.3333333333333333 (19/09/26 07:49:00)] were less than the threshold (0.5)."
+  },
+  {
+    "time": "2026-09-19T07:55:03.794000+00:00",
+    "alarm": "stuck-feature",
+    "from": "ALARM",
+    "to": "OK",
+    "reason": "Threshold Crossed: 1 datapoint [0.0 (19/09/26 07:54:00)] was not greater than or equal to the threshold (1.0)."
+  },
+  {
+    "time": "2026-09-19T07:55:58.076000+00:00",
+    "alarm": "feature-drift",
+    "from": "ALARM",
+    "to": "OK",
+    "reason": "Threshold Crossed: 1 datapoint [0.0 (19/09/26 07:54:00)] was not greater than or equal to the threshold (1.0)."
+  },
+  {
+    "time": "2026-09-19T07:56:05.691000+00:00",
+    "alarm": "flag-rate-collapse",
+    "from": "ALARM",
+    "to": "OK",
+    "reason": "Threshold Crossed: 1 datapoint [0.35714285714285715 (19/09/26 07:55:00)] was not less than the threshold (0.2)."
+  },
+  {
+    "time": "2026-09-19T07:57:34.853000+00:00",
+    "alarm": "recall-degraded",
+    "from": "ALARM",
+    "to": "OK",
+    "reason": "Threshold Crossed: 1 datapoint [0.6153846153846154 (19/09/26 07:56:00)] was not less than the threshold (0.5)."
+  }
+]

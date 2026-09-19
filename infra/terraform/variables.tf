@@ -51,3 +51,9 @@ variable "alert_email" {
   default     = ""
 }
 
+
+variable "db_instance_class" {
+  description = "db.t4g.micro (1 GB) swapped under load in testing; see docs/AWS.md"
+  type        = string
+  default     = "db.t4g.micro"
+}

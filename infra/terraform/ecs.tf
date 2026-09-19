@@ -75,7 +75,7 @@ resource "aws_ecs_task_definition" "api" {
       secrets          = local.app_db_secrets
       logConfiguration = local.logs["api"]
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -fs http://localhost:8000/ready || exit 1"]
+        command     = ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=2).status != 200)"]
         interval    = 15
         timeout     = 5
         retries     = 3

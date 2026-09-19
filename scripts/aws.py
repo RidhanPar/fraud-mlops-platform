@@ -63,7 +63,9 @@ def cmd_push(args) -> None:
 
     tag = args.tag or git_tag()
     api = f"{out['ecr_api_repo']}:{tag}"
-    run(["docker", "build", "-q", "-t", api, "."], cwd=ROOT)
+    # --provenance=false: push a plain image manifest. With the default attestations
+    # Docker pushes an OCI index, which ECR basic scanning cannot scan.
+    run(["docker", "build", "-q", "--provenance=false", "-t", api, "."], cwd=ROOT)
     run(["docker", "push", "-q", api])
     loadgen = f"{out['ecr_loadgen_repo']}:latest"
     run(["docker", "build", "-q", "-t", loadgen, "loadtest"], cwd=ROOT)
@@ -118,12 +120,14 @@ def cmd_alarms(args) -> None:
     since = dt.datetime.fromisoformat(args.since.replace("Z", "+00:00"))
     items = []
     for page in cw.get_paginator("describe_alarm_history").paginate(
-            AlarmNamePrefix="fraud-mlops-", HistoryItemType="StateUpdate", StartDate=since,
+            HistoryItemType="StateUpdate", StartDate=since,
             EndDate=dt.datetime.now(dt.timezone.utc), ScanBy="TimestampAscending"):
         for h in page["AlarmHistoryItems"]:
+            if not h["AlarmName"].startswith("fraud-mlops-"):
+                continue
             data = json.loads(h["HistoryData"])
             items.append({
-                "time": h["Timestamp"].isoformat(),
+                "time": h["Timestamp"].astimezone(dt.timezone.utc).isoformat(),
                 "alarm": h["AlarmName"].removeprefix("fraud-mlops-"),
                 "from": data["oldState"]["stateValue"],
                 "to": data["newState"]["stateValue"],

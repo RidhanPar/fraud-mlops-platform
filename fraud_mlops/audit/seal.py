@@ -19,7 +19,6 @@ the audit_seals table, which is itself append only.
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import logging
 import os
 import time
@@ -31,20 +30,15 @@ from fraud_mlops.dburl import app_database_url
 
 log = logging.getLogger("auditor")
 
-# Rows younger than this are left for the next pass, so a slow commit with a
-# lower id cannot land inside a range that has already been sealed.
-SETTLE_SECONDS = 10
-
-
-def seal_once(store: PredictionStore, max_rows: int = 50_000,
-              settle_seconds: float = SETTLE_SECONDS) -> dict | None:
+def seal_once(store: PredictionStore, max_rows: int = 50_000) -> dict | None:
     seals = store.seals()
     after = seals[-1]["last_id"] if seals else 0
     prev = seals[-1]["seal_hash"] if seals else GENESIS
-    until = utcnow() - dt.timedelta(seconds=settle_seconds)
+    # Cut off by id behind a lock barrier, never by time: see settled_max_id.
+    upper = store.settled_max_id()
 
     ids, hashes = [], []
-    for row in store.iter_predictions(after_id=after, until=until):
+    for row in store.iter_predictions(after_id=after, max_id=upper):
         ids.append(row["id"])
         hashes.append(row["record_hash"])
         if len(ids) >= max_rows:

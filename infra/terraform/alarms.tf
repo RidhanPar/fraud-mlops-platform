@@ -86,7 +86,7 @@ resource "aws_cloudwatch_metric_alarm" "errors_5xx" {
 
   metric_query {
     id          = "rate"
-    expression  = "100 * errors / MAX([requests, 1])"
+    expression  = "IF(requests > 0, 100 * errors / requests, 0)"
     label       = "5xx percent"
     return_data = true
   }
