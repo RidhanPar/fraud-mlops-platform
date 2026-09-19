@@ -25,7 +25,9 @@ from prometheus_client import Counter, Gauge, start_http_server
 from sklearn.metrics import average_precision_score
 
 from fraud_mlops.api.store import PredictionStore
+from fraud_mlops.monitoring.cloudwatch import publish
 from fraud_mlops.monitoring.drift import MONITORED_FEATURES, feature_drift, mode_share, score_drift
+from fraud_mlops.dburl import app_database_url
 
 log = logging.getLogger("drift_monitor")
 
@@ -72,8 +74,9 @@ def run_cycle(
     cfg: MonitorConfig,
 ) -> dict:
     """One monitoring pass. Returns a report and updates the gauges."""
-    report: dict = {}
-    REF_FLAG_RATE.set(float((reference["score"] >= threshold).mean()))
+    ref_flag_rate = float((reference["score"] >= threshold).mean())
+    report: dict = {"reference_flag_rate": ref_flag_rate}
+    REF_FLAG_RATE.set(ref_flag_rate)
 
     live = store.recent_predictions(cfg.rate_window)
     if len(live) >= cfg.min_rows:
@@ -102,6 +105,7 @@ def run_cycle(
         SCORE_PSI.set(sd["score_psi"])
         report.update(
             window_rows=len(window),
+            flag_rate_rows=len(live),
             stuck_features=stuck,
             flag_rate=float(live["is_fraud"].mean()),
             score_psi=sd["score_psi"],
@@ -145,17 +149,25 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     model_dir = Path(os.environ.get("MODEL_DIR", "serving_model"))
     interval = float(os.environ.get("MONITOR_INTERVAL_SECONDS", "15"))
-    store = PredictionStore(os.environ["DATABASE_URL"])
+    store = PredictionStore(app_database_url())
     reference, psi_thresholds, threshold = load_reference(model_dir)
     for f in MONITORED_FEATURES:
         FEATURE_PSI_THRESHOLD.labels(f).set(psi_thresholds[f])
     cfg = MonitorConfig()
+    namespace = os.environ.get("CLOUDWATCH_NAMESPACE")
+    cloudwatch = None
+    if namespace:
+        import boto3
+
+        cloudwatch = boto3.client("cloudwatch")
 
     start_http_server(int(os.environ.get("MONITOR_PORT", "9100")))
     log.info("monitor started, interval %.0fs", interval)
     while True:
         try:
             report = run_cycle(store, reference, psi_thresholds, threshold, cfg)
+            if cloudwatch is not None:
+                publish(cloudwatch, namespace, report)
             if report.get("drifting"):
                 log.warning("feature drift: %s", json.dumps(report["drifting"]))
             log.info(

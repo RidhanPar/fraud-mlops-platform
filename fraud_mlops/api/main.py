@@ -29,6 +29,7 @@ from fraud_mlops.api.schemas import (
     PredictionResponse,
     Transaction,
 )
+from fraud_mlops.dburl import app_database_url
 from fraud_mlops.api.store import PredictionStore
 from fraud_mlops.audit.hashing import record_hash
 from fraud_mlops.explain import explain
@@ -37,7 +38,7 @@ from fraud_mlops.features import RAW_COLUMNS
 log = logging.getLogger("fraud_api")
 
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", Path(__file__).resolve().parents[2] / "serving_model"))
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL = app_database_url()
 
 state: dict = {}
 

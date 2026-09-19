@@ -22,6 +22,7 @@ from fraud_mlops.audit.hashing import file_sha256, record_hash
 from fraud_mlops.config import load_params
 from fraud_mlops.explain import explain
 from fraud_mlops.train import tracking_uri
+from fraud_mlops.dburl import app_database_url
 
 
 def explain_logged(store: PredictionStore, transaction_id: str, top: int = 10) -> dict:
@@ -61,7 +62,7 @@ def main() -> None:
     ap.add_argument("--transaction-id", required=True)
     ap.add_argument("--top", type=int, default=10)
     args = ap.parse_args()
-    store = PredictionStore(os.environ["DATABASE_URL"])
+    store = PredictionStore(app_database_url())
     print(json.dumps(explain_logged(store, args.transaction_id, args.top), indent=2))
 
 

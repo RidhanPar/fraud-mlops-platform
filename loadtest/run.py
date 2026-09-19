@@ -63,9 +63,9 @@ async def worker(client, url, rows, batch, deadline, latencies, errors):
             errors.append(1)
 
 
-async def _scenario(base, endpoint, batch, concurrency, duration, rows):
+async def _scenario(base, endpoint, batch, concurrency, duration, rows, headers=None):
     limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
-    async with httpx.AsyncClient(base_url=base, timeout=30, limits=limits) as client:
+    async with httpx.AsyncClient(base_url=base, timeout=30, limits=limits, headers=headers) as client:
         # Warm up connections so the first handshakes do not pollute the numbers.
         await asyncio.gather(*(client.get("/health") for _ in range(concurrency)))
         latencies: list[float] = []
@@ -83,11 +83,11 @@ def _run_proc(args):
     return asyncio.run(_scenario(*args))
 
 
-def scenario(base, endpoint, batch, concurrency, duration, rows, procs=1) -> dict:
+def scenario(base, endpoint, batch, concurrency, duration, rows, procs=1, headers=None) -> dict:
     """Spread the clients over several processes so the generator is not the bottleneck."""
     procs = max(1, min(procs, concurrency))
     shares = [concurrency // procs + (i < concurrency % procs) for i in range(procs)]
-    jobs = [(base, endpoint, batch, c, duration, rows) for c in shares]
+    jobs = [(base, endpoint, batch, c, duration, rows, headers) for c in shares]
     if procs == 1:
         parts = [_run_proc(jobs[0])]
     else:
@@ -117,7 +117,8 @@ def run_all(args) -> None:
         return
     results = {}
     for name, endpoint, batch, conc in SCENARIOS:
-        r = scenario(args.url, endpoint, batch, conc, args.duration, rows, args.procs)
+        headers = dict(h.split(":", 1) for h in args.header) if args.header else None
+        r = scenario(args.url, endpoint, batch, conc, args.duration, rows, args.procs, headers)
         results[name] = r
         print(
             f"{name:<15} {r['req_per_s']:>8.1f} req/s {r['rows_per_s']:>9.0f} rows/s  "
@@ -133,6 +134,10 @@ def run_all(args) -> None:
         "client_host": platform.platform(),
         "results": results,
     }
+    if args.print_json:
+        # On Fargate there is no disk to collect from: the result goes to the log stream.
+        print("RESULT_JSON " + json.dumps(out), flush=True)
+        return
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=2), encoding="utf-8")
 
@@ -144,6 +149,8 @@ def main() -> None:
     p.add_argument("--duration", type=float, default=30)
     p.add_argument("--note", default="")
     p.add_argument("--procs", type=int, default=1, help="load generator processes")
+    p.add_argument("--header", action="append", default=[], help="extra header, Name:value")
+    p.add_argument("--print-json", action="store_true", help="print results to stdout instead of a file")
     p.add_argument("--payloads", help="JSON list of transactions (skip reading the CSV)")
     p.add_argument("--export-payloads", help="write sampled holdout payloads to this file and exit")
     p.add_argument("--out", default=str(ROOT / "loadtest/results/latest.json"))

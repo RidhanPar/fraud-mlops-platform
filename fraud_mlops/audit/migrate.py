@@ -17,7 +17,8 @@ import re
 
 from sqlalchemy import text
 
-from fraud_mlops.api.store import APPEND_ONLY_TABLES, PredictionStore
+from fraud_mlops.api.store import APPEND_ONLY_TABLES, PredictionStore, metadata
+from fraud_mlops.dburl import admin_database_url
 
 APP_ROLE = "fraud_app"
 
@@ -26,11 +27,16 @@ def migrate(admin_url: str, app_password: str) -> None:
     if not re.fullmatch(r"[A-Za-z0-9_]{8,64}", app_password):
         raise ValueError("APP_DB_PASSWORD must be 8 to 64 letters, digits or underscores")
     store = PredictionStore(admin_url)
-    store.create_schema()
     if store.engine.dialect.name != "postgresql":
+        store.create_schema()
         return
 
+    # On AWS this runs as an init container in every API task, so two tasks can
+    # start it at once. One transaction behind an advisory lock makes it safe to
+    # run concurrently and repeatedly.
     with store.engine.begin() as conn:
+        conn.execute(text("SELECT pg_advisory_xact_lock(7331)"))
+        metadata.create_all(conn)
         conn.execute(text("""
             CREATE OR REPLACE FUNCTION audit_forbid_change() RETURNS trigger
             LANGUAGE plpgsql AS $$
@@ -61,7 +67,10 @@ def migrate(admin_url: str, app_password: str) -> None:
 
 
 def main() -> None:
-    migrate(os.environ["DATABASE_ADMIN_URL"], os.environ["APP_DB_PASSWORD"])
+    url = admin_database_url()
+    if url is None:
+        raise SystemExit("set DATABASE_ADMIN_URL, or DB_HOST with DB_ADMIN_USER and DB_ADMIN_PASSWORD")
+    migrate(url, os.environ["APP_DB_PASSWORD"])
     print("schema ready: append only triggers installed, app role has INSERT and SELECT only")
 
 

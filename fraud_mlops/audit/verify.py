@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 
 from fraud_mlops.api.store import PredictionStore
 from fraud_mlops.audit.hashing import GENESIS, record_hash, rows_digest, seal_hash
+from fraud_mlops.dburl import app_database_url
 
 
 @dataclass
@@ -78,7 +79,14 @@ def verify(store: PredictionStore, max_problems: int = 50) -> VerifyReport:
 
 
 def main() -> None:
-    r = verify(PredictionStore(os.environ["DATABASE_URL"]))
+    store = PredictionStore(app_database_url())
+    r = verify(store)
+    bucket = os.environ.get("SEAL_ANCHOR_BUCKET")
+    if bucket:
+        from fraud_mlops.audit.anchor import SealAnchor
+
+        r.problems.extend(SealAnchor(bucket).compare(store.seals()))
+        print(f"anchor bucket  : s3://{bucket} (write once copies compared)")
     print(f"rows checked   : {r.rows_checked}")
     print(f"seals checked  : {r.seals_checked}")
     print(f"unsealed tail  : {r.unsealed_rows} (newer than the last seal)")

@@ -25,7 +25,9 @@ import os
 import time
 
 from fraud_mlops.api.store import PredictionStore, utcnow
+from fraud_mlops.audit.anchor import SealAnchor
 from fraud_mlops.audit.hashing import GENESIS, rows_digest, seal_hash
+from fraud_mlops.dburl import app_database_url
 
 log = logging.getLogger("auditor")
 
@@ -70,7 +72,10 @@ def main() -> None:
     ap.add_argument("--loop", action="store_true")
     ap.add_argument("--interval", type=float, default=float(os.environ.get("SEAL_INTERVAL_SECONDS", "30")))
     args = ap.parse_args()
-    store = PredictionStore(os.environ["DATABASE_URL"])
+    store = PredictionStore(app_database_url())
+    bucket = os.environ.get("SEAL_ANCHOR_BUCKET")
+    anchor = SealAnchor(bucket) if bucket else None
+    known = set(anchor.anchored()) if anchor else set()
     max_rows = 50_000
     while True:
         try:
@@ -81,6 +86,10 @@ def main() -> None:
                          seal["row_count"], seal["seal_hash"][:16])
                 if seal["row_count"] < max_rows:
                     break
+            if anchor is not None:
+                # Retries any seal whose earlier upload failed.
+                for key in anchor.anchor_missing(store.seals(), known):
+                    log.info("anchored %s in s3://%s", key, bucket)
         except Exception:
             log.exception("seal pass failed")
         if not args.loop:
