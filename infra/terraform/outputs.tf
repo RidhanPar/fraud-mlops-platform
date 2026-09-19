@@ -54,7 +54,3 @@ output "loadgen_task_definition" {
 output "alarm_topic" {
   value = aws_sns_topic.alerts.arn
 }
-
-output "github_ci_role_arn" {
-  value = var.github_repo == "" ? null : aws_iam_role.github_ci[0].arn
-}

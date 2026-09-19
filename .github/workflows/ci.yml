@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt shap==0.51.0
+      - run: pytest -q
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.3
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      # The real model comes from the registry and is not in git; see the script.
+      - run: python scripts/make_ci_model.py
+      - run: docker build -t fraud-detector:ci .
+      - name: Smoke test the container
+        run: |
+          docker run -d --name api -p 8000:8000 fraud-detector:ci
+          for i in $(seq 1 30); do curl -fs localhost:8000/ready && break; sleep 2; done
+          curl -fs localhost:8000/ready | grep '"model_version":"ci"'
+          python - <<'EOF'
+          import httpx
+          from fraud_mlops.features import RAW_COLUMNS
+          tx = {c: 0.1 for c in RAW_COLUMNS}
+          r = httpx.post("http://localhost:8000/predict", json=tx)
+          assert r.status_code == 200 and 0 <= r.json()["fraud_probability"] <= 1, r.text
+          bad = dict(tx, Amount=-1)
+          assert httpx.post("http://localhost:8000/predict", json=bad).status_code == 422
+          print("smoke test passed")
+          EOF
+      - if: failure()
+        run: docker logs api

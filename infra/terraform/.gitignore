@@ -4,3 +4,4 @@
 terraform.tfvars
 *.tfplan
 .terraform.lock.hcl.bak
+apply.log

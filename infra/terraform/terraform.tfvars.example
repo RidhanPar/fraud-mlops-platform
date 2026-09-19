@@ -1,4 +1,3 @@
 allowed_cidr = "203.0.113.7/32"   # your public IP, from https://checkip.amazonaws.com
 image_tag    = "abc1234"          # git commit of the image pushed to ECR
 # alert_email = "you@example.com" # optional: AWS sends a subscription confirmation
-# github_repo = "owner/fraud-mlops-platform"  # optional: CI pushes images via OIDC

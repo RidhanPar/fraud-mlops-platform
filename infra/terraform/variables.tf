@@ -51,8 +51,3 @@ variable "alert_email" {
   default     = ""
 }
 
-variable "github_repo" {
-  description = "owner/name of the GitHub repo allowed to push images through OIDC; empty disables it"
-  type        = string
-  default     = ""
-}
