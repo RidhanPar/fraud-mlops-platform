@@ -19,6 +19,12 @@ The row is written **before** the response is returned. If the write fails, the 
 503 (fail closed): a decision that cannot be traced is not made. Explanation requests are
 recorded too, in `explanations`, with who asked and when.
 
+> **Correction (2026-09-19).** The first sealer cut off rows by time, which leaves holes in a
+> sealed range under concurrent load: rows with lower ids can be stamped slightly later. It passed
+> the checks below, but later load runs produced seals that no longer verified, locally and on AWS.
+> It now seals by id behind a lock barrier. Full diagnosis:
+> [ISSUES_AND_FIXES.md](ISSUES_AND_FIXES.md#the-sealer-race-rows-appeared-inside-an-already-sealed-range).
+
 ## Three layers of protection
 
 1. **Least privilege.** The schema is created by a one-shot migration job running as the
@@ -33,8 +39,8 @@ recorded too, in `explanations`, with who asked and when.
    `python -m fraud_mlops.audit.verify`.
 
 Sealing runs off the request path. A single global chain written by the API would force
-every worker to serialise on one lock. Rows younger than 10 seconds are left for the next
-pass, so a slow commit with a lower id cannot land inside a range already sealed.
+every worker to serialise on one lock. The sealer cuts off by id behind an advisory lock
+barrier, so no row below the cut off can still be uncommitted (see the correction above).
 
 ## Tamper demo
 

@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "problems": [
+    "seal 2: expected 6650 rows in ids 1924..8582, found 6659"
+  ],
+  "rows_checked": 553440,
+  "seals_checked": 57
+}

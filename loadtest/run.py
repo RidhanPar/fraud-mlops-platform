@@ -116,7 +116,10 @@ def run_all(args) -> None:
         print(f"wrote {len(rows)} payloads to {args.export_payloads}")
         return
     results = {}
+    wanted = set(args.only) if args.only else None
     for name, endpoint, batch, conc in SCENARIOS:
+        if wanted and name not in wanted:
+            continue
         headers = dict(h.split(":", 1) for h in args.header) if args.header else None
         r = scenario(args.url, endpoint, batch, conc, args.duration, rows, args.procs, headers)
         results[name] = r
@@ -151,6 +154,7 @@ def main() -> None:
     p.add_argument("--procs", type=int, default=1, help="load generator processes")
     p.add_argument("--header", action="append", default=[], help="extra header, Name:value")
     p.add_argument("--print-json", action="store_true", help="print results to stdout instead of a file")
+    p.add_argument("--only", action="append", help='run only this scenario, e.g. "batch1000 c=2"')
     p.add_argument("--payloads", help="JSON list of transactions (skip reading the CSV)")
     p.add_argument("--export-payloads", help="write sampled holdout payloads to this file and exit")
     p.add_argument("--out", default=str(ROOT / "loadtest/results/latest.json"))

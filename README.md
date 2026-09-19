@@ -20,7 +20,9 @@ with the raw output committed next to it.
 | Upstream fault (V14 zero filled) | feature drift alert at +85 s, flag rate collapse +130 s, recall decay +150 s; **prediction drift never fired** | [docs/drift_event](docs/drift_event/DRIFT_EVENT.md) |
 | Same recall alert, two causes | V14 outage → **FIX_DATA**; fraudster evasion → **RETRAIN_NOW** | [docs/RETRAINING_POLICY.md](docs/RETRAINING_POLICY.md) |
 | Tamper test | an admin who disabled triggers and forged a row hash was caught by the seal chain | [docs/AUDIT.md](docs/AUDIT.md) |
-| AWS deployment | AWS_RESULTS_ROW | [docs/AWS.md](docs/AWS.md) |
+| AWS deployment | deployed with Terraform (56 resources), drift alarms fired on CloudWatch, zero downtime rolling deploy (19,076 requests, 0 errors), then destroyed | [docs/AWS.md](docs/AWS.md) |
+
+Every problem hit while building it, and how it was solved: [docs/ISSUES_AND_FIXES.md](docs/ISSUES_AND_FIXES.md).
 
 A note on the model's headline figure. PayGuard was described as 0.999 ROC AUC. That does not
 reproduce on any held out split: a random 80/20 split gives 0.965, the time ordered split
@@ -154,7 +156,39 @@ by 2.21 log odds while three other features still pointed at fraud.
 
 ## 5. Infrastructure and CI
 
-AWS_SECTION
+Terraform in [`infra/terraform`](infra/terraform) deploys the stack to AWS (eu-north-1). It was
+run for real, measured, then destroyed. Full results: [docs/AWS.md](docs/AWS.md).
+
+- **ECS Fargate** runs 2 API tasks across two availability zones behind an **Application Load
+  Balancer**, plus the monitor and auditor. The migration runs as an init container, and only it
+  receives the database admin credentials.
+- **RDS Postgres** holds the prediction log. RDS generates the admin password; it never appears in
+  code or Terraform state.
+- **S3 Object Lock** keeps a write once copy of every seal, so even a database admin who rewrites
+  the whole seal chain is caught.
+- **CloudWatch alarms** replace the Prometheus rules; the monitor publishes its drift signals there.
+- **A least privilege deployer** ([policy](infra/deployer-policy.json)): one region, project named
+  roles and buckets only.
+
+Measured on AWS:
+
+| Result | Value |
+|---|---|
+| Single prediction through the load balancer, 1 client (generator inside the VPC) | p50 12.4 ms, p99 19.9 ms |
+| V14 outage: stuck-feature alarm / recall alarm | +56 s / +4 min 27 s; prediction drift never fired |
+| Rolling deploy under traffic | 19,076 requests, all 200 |
+| Image vulnerability scan after fixes | critical 2 → 0 |
+| Tamper test | a database admin's rewrite of the seal chain caught by the S3 copies |
+| Audit trail after the sealer fix | 553,440 rows in 57 seals verified inside AWS |
+
+**CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the tests, checks Terraform
+formatting and validity, builds the image around a small synthetic stand-in model (the real model
+is not in git) and smoke tests the container. Its steps were run locally against a clean export of
+the repository (58 tests passed, container healthy, invalid input returned 422). It runs on GitHub
+once the repository is pushed.
+
+**Every problem hit along the way, and how it was solved, is in
+[docs/ISSUES_AND_FIXES.md](docs/ISSUES_AND_FIXES.md).**
 
 ## Running it
 
@@ -188,4 +222,17 @@ docs/                 design notes and every recorded result
 
 ## Honest scope: what an enterprise MLOps platform would add
 
-SCOPE_SECTION
+This is one engineer's build of the lifecycle, not a platform. A team running it for real would add:
+
+- **A feature store** with point in time correct training data. Here, training and serving share one feature function.
+- **Shadow and canary releases.** The gate compares models offline; production would shadow a candidate on live traffic and shift a small share of traffic before promoting.
+- **Automated retraining.** The policy decides *whether* to retrain; the retraining itself, with matured labels and incident windows excluded, is manual here.
+- **A label pipeline.** Labels arrive through `/feedback`; real chargebacks arrive weeks late from other systems and need their own ingestion and quality checks.
+- **Managed MLflow** with an S3 artifact store and access control, instead of a local SQLite file.
+- **Private networking.** Tasks and the database would sit in private subnets behind NAT or VPC endpoints; here the database was reachable from one operator IP so audit tooling could run.
+- **TLS and real authentication.** Plain HTTP (no domain for a certificate) and a self declared `X-Client-ID`; production uses TLS, mTLS or a gateway token, and per caller authorisation.
+- **High availability for the log.** Single-AZ RDS here; production uses Multi-AZ, and a durable queue such as Kafka between the API and the database at higher volume.
+- **Right sizing.** The 1 GB database swapped under load; the resize test was blocked by the account's Free plan (see [docs/AWS.md](docs/AWS.md)).
+- **Remote Terraform state** with locking, and CI that plans and applies infrastructure changes.
+- **Secrets rotation, retention rules and GDPR erasure** (crypto-shredding for append only data).
+- **Business meaningful explanations.** V1 to V28 are anonymised, so explanations cannot become reason codes a customer could act on.

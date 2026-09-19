@@ -1,0 +1,33 @@
+{
+  "duration_s": 191,
+  "requests": 19076,
+  "status_counts": {
+    "200": 19076
+  },
+  "non_200": 0,
+  "p50_ms": 29.06036376953125,
+  "p99_ms": 339.3293023109436,
+  "max_ms": 3783.3056449890137,
+  "rollout_events": [
+    {
+      "t": 2,
+      "rollout": "COMPLETED",
+      "deployments": 1,
+      "task_definition": "fraud-mlops-api:1"
+    },
+    {
+      "t": 27,
+      "rollout": "IN_PROGRESS",
+      "deployments": 2,
+      "task_definition": "fraud-mlops-api:2"
+    },
+    {
+      "t": 180,
+      "rollout": "COMPLETED",
+      "deployments": 1,
+      "task_definition": "fraud-mlops-api:2"
+    }
+  ],
+  "model_after": "1",
+  "note": "client on the operator's laptop through the internet; latency includes that path"
+}

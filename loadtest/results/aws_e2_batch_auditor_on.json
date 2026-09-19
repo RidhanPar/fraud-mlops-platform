@@ -1,0 +1,25 @@
+{
+  "target": "http://fraud-mlops-1226623483.eu-north-1.elb.amazonaws.com:8080",
+  "duration_s_per_scenario": 30.0,
+  "note": "E2: batch1000 only, auditor ON (seal barrier every 30 s). RDS db.t4g.micro.",
+  "generator_processes": 2,
+  "client_host": "Linux-6.1.182-x86_64-with-glibc2.41",
+  "results": {
+    "batch1000 c=2": {
+      "requests": 70,
+      "errors": 0,
+      "error_rate": 0.0,
+      "req_per_s": 2.3056410661713924,
+      "rows_per_s": 2305.641066171392,
+      "p50_ms": 547.5756505000006,
+      "p95_ms": 2401.0157787499966,
+      "p99_ms": 3425.969712400001,
+      "max_ms": 3632.239788999996
+    }
+  },
+  "fargate_task": {
+    "cpu": "2048",
+    "memory": "4096",
+    "id": "4615cb23b37847b6915488f45d3f43a8"
+  }
+}

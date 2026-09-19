@@ -80,6 +80,8 @@ def cmd_loadtest(args) -> None:
                "--procs", str(args.procs), "--duration", str(args.duration), "--print-json",
                "--header", f"X-Loadtest-Token:{out['loadtest_token']}",
                "--note", args.note]
+    for scenario in args.only or []:
+        command += ["--only", scenario]
     task = ecs.run_task(
         cluster=out["cluster"], taskDefinition=out["loadgen_task_definition"], launchType="FARGATE",
         networkConfiguration={"awsvpcConfiguration": {
@@ -180,6 +182,7 @@ def main() -> None:
     p.add_argument("--procs", type=int, default=4)
     p.add_argument("--note", default="AWS: generator is a Fargate task in the same VPC, through the ALB")
     p.add_argument("--out", default="aws_fargate.json")
+    p.add_argument("--only", action="append", help='run only this scenario, e.g. "batch1000 c=2"')
     p.set_defaults(fn=cmd_loadtest)
     p = sub.add_parser("alarms")
     p.add_argument("--since", required=True)
