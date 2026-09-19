@@ -6,3 +6,4 @@ cloudpickle==3.1.2
 SQLAlchemy==2.0.50
 prometheus_client==0.25.0
 matplotlib
+boto3==1.43.36

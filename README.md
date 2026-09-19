@@ -183,9 +183,8 @@ Measured on AWS:
 
 **CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the tests, checks Terraform
 formatting and validity, builds the image around a small synthetic stand-in model (the real model
-is not in git) and smoke tests the container. Its steps were run locally against a clean export of
-the repository (58 tests passed, container healthy, invalid input returned 422). It runs on GitHub
-once the repository is pushed.
+is not in git) and smoke tests the container. It runs on every push and pull request; its first run on GitHub caught a missing
+dev dependency that a local check had missed (see the issues log).
 
 **Every problem hit along the way, and how it was solved, is in
 [docs/ISSUES_AND_FIXES.md](docs/ISSUES_AND_FIXES.md).**

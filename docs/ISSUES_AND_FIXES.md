@@ -151,5 +151,10 @@ kept in, because how a wrong guess got caught is often the most useful part of t
 - **Root cause:** the threshold is relative to the *training* flag rate, and live traffic normally runs at 0.2 to 0.4 of it.
 - **Not yet fixed:** it should be calibrated on known good traffic, like the drift thresholds.
 
+### CI failed on its first run on GitHub
+- **Seen:** the first GitHub Actions run failed collecting tests: `No module named 'boto3'`.
+- **Root cause:** boto3 was listed in the serving requirements but not the dev requirements. My local "clean export" check copied only the *code*; the tests still ran against my laptop's Python, which already had boto3 installed.
+- **Fix:** boto3 added to `requirements-dev.txt`. A clean checkout is not a clean environment, which is exactly the gap CI exists to close.
+
 ### An integration that was never exercised was removed
 - A GitHub OIDC role for CI was written in Terraform, but CI never pushed images (the real model is not in git). Rather than ship an untested integration, it was removed. CI builds and smoke tests the image around a synthetic stand-in model instead.
