@@ -112,8 +112,20 @@ the fix. That seal stays flagged: an audit trail records its incident, it does n
 - **Cost of the auditor on large batches.** Batch throughput was 3,024 rows/s with the auditor off
   and 2,306 rows/s with it on, but each run had about 90 requests and the auditor was still
   clearing a backlog, so the barrier's own cost is not isolated.
-- **Cost.** Cost Explorer showed $0.00 on the day because billing data lags up to 24 hours.
-  Check with `python scripts/aws.py cost --start 2026-09-19 --end 2026-09-21`.
+- **Cost (now known).** Checked the next day, once billing data had settled. Usage for the whole
+  run was **$0.41**, fully offset by Free plan credits, so **$0.00 net**:
+
+  | Service | Usage cost |
+  |---|---|
+  | ECS Fargate (2 API tasks, monitor, auditor, load generator) | $0.245 |
+  | VPC (public IPv4 addresses) | $0.053 |
+  | Application Load Balancer | $0.052 |
+  | RDS Postgres db.t4g.micro | $0.039 |
+  | Cost Explorer API calls (from checking the bill) | $0.020 |
+  | Secrets Manager, S3 Object Lock | $0.003 |
+
+  Roughly $0.25 per hour of running, which matches the estimate. Reproduce with
+  `python scripts/aws.py cost --start 2026-09-19 --end 2026-09-21`.
 
 ## Teardown
 

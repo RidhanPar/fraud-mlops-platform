@@ -157,18 +157,29 @@ def cmd_empty_seals(args) -> None:
 
 
 def cmd_cost(args) -> None:
+    """Gross usage, credits and net. Reporting only the positive lines hides both
+    the sub cent services and any credits covering the bill."""
     ce = boto3.Session(profile_name=PROFILE).client("ce", region_name="us-east-1")
-    r = ce.get_cost_and_usage(
-        TimePeriod={"Start": args.start, "End": args.end}, Granularity="DAILY",
-        Metrics=["UnblendedCost"], GroupBy=[{"Type": "DIMENSION", "Key": "SERVICE"}])
-    total = 0.0
-    for day in r["ResultsByTime"]:
-        for g in day["Groups"]:
-            amount = float(g["Metrics"]["UnblendedCost"]["Amount"])
-            if amount >= 0.001:
-                total += amount
-                print(f"{day['TimePeriod']['Start']}  {g['Keys'][0]:<45} ${amount:.3f}")
-    print(f"total ${total:.2f}")
+    period = {"Start": args.start, "End": args.end}
+    # Usage records only: with credits mixed in, a covered service nets to zero and vanishes.
+    by_service = ce.get_cost_and_usage(
+        TimePeriod=period, Granularity="MONTHLY", Metrics=["UnblendedCost"],
+        Filter={"Dimensions": {"Key": "RECORD_TYPE", "Values": ["Usage"]}},
+        GroupBy=[{"Type": "DIMENSION", "Key": "SERVICE"}])["ResultsByTime"][0]["Groups"]
+    for g in sorted(by_service, key=lambda g: -float(g["Metrics"]["UnblendedCost"]["Amount"])):
+        amount = float(g["Metrics"]["UnblendedCost"]["Amount"])
+        if abs(amount) >= 0.0001:
+            print(f"  {g['Keys'][0]:<45} ${amount:.4f}")
+    totals = {g["Keys"][0]: float(g["Metrics"]["UnblendedCost"]["Amount"])
+              for g in ce.get_cost_and_usage(
+                  TimePeriod=period, Granularity="MONTHLY", Metrics=["UnblendedCost"],
+                  GroupBy=[{"Type": "DIMENSION", "Key": "RECORD_TYPE"}])["ResultsByTime"][0]["Groups"]}
+    usage = totals.get("Usage", 0.0)
+    credits = sum(v for k, v in totals.items() if k != "Usage")
+    print(f"\n  usage   ${usage:.2f}")
+    print(f"  credits ${credits:.2f}")
+    net = usage + credits
+    print(f"  net     ${0.0 if abs(net) < 0.005 else net:.2f}")
 
 
 def main() -> None:
